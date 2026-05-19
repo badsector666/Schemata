@@ -65,15 +65,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .log-type-header .actions button:hover { background:#7f1d1d; color:#fff; }
 .log-type-body { padding:12px 8px; overflow-x:auto; }
 
-/* Diameter table — row-based */
+/* Formula row */
+.formula-row { background:#0f172a; padding:8px 16px; display:flex; align-items:center; gap:8px; border-top:1px solid #1e293b; }
+.formula-row label { font-size:11px; color:#64748b; font-weight:700; white-space:nowrap; }
+.formula-row input { flex:1; background:transparent; border:none; color:#38bdf8; font-size:12px; font-family:monospace; outline:none; }
+.formula-row input::placeholder { color:#334155; }
+.formula-error { color:#ef4444; font-size:11px; }
+
+/* Diameter table */
 .dia-table { width:100%; border-collapse:collapse; }
 .dia-table th { background:#0f172a; color:#64748b; font-size:11px; font-weight:700; padding:4px 2px; text-align:center; border:1px solid #1e293b; min-width:50px; }
 .dia-table td { text-align:center; padding:0; border:1px solid #1e293b; position:relative; }
-.dia-table tr.has-value td { background:#1e3a5f; }
 .dia-table td input { width:100%; background:transparent; border:none; color:#f8fafc; font-size:15px; text-align:center; padding:6px 2px; outline:none; font-weight:600; }
 .dia-table td input::placeholder { color:#334155; font-size:12px; }
 .dia-table td input:focus { background:#1e3a5f; }
-.dia-table th.row-label { color:#94a3b8; font-size:10px; }
 
 /* Totals */
 .totals-bar { display:flex; gap:16px; flex-wrap:wrap; padding:10px 16px; background:#1e293b; border-top:1px solid #334155; }
@@ -106,10 +111,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .toast.err { background:#ef4444; color:#fff; }
 .toast.info { background:#3b82f6; color:#fff; }
 
-/* Formula info */
-.formula-info { font-size:12px; color:#64748b; padding:8px 0; }
-.formula-info code { background:#0f172a; padding:2px 6px; border-radius:3px; color:#38bdf8; }
-
 /* Responsive */
 @media (max-width:768px) {
   .header { flex-wrap:wrap; }
@@ -130,67 +131,42 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 
 <div class="container">
-  <!-- Setup banner -->
   <div class="setup-banner" id="setup-banner" style="display:none">
     <h2>Setup Required</h2>
-    <p>Create the required schemas (tally_headers, tally_items, suppliers, graders, locations) in your Schemata worker?</p>
+    <p>Create the required schemas in your Schemata worker?</p>
     <button onclick="App.setup()">Create Schemas</button>
   </div>
 
-  <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" data-tab="tally" onclick="App.switchTab('tally')">Tally</div>
     <div class="tab" data-tab="history" onclick="App.switchTab('history')">History</div>
     <div class="tab" data-tab="refs" onclick="App.switchTab('refs')">References</div>
   </div>
 
-  <!-- Tally Tab -->
   <div class="panel active" id="tab-tally">
-    <!-- Header info -->
     <div class="card">
       <h3>Tally Session</h3>
       <div class="form-row">
-        <div class="form-group">
-          <label>Date</label>
-          <input type="date" id="tally-date">
-        </div>
-        <div class="form-group">
-          <label>Supplier</label>
-          <select id="tally-supplier"></select>
-        </div>
-        <div class="form-group">
-          <label>Grader</label>
-          <select id="tally-grader"></select>
-        </div>
-        <div class="form-group">
-          <label>Location</label>
-          <select id="tally-location"></select>
-        </div>
+        <div class="form-group"><label>Date</label><input type="date" id="tally-date"></div>
+        <div class="form-group"><label>Supplier</label><select id="tally-supplier"></select></div>
+        <div class="form-group"><label>Grader</label><select id="tally-grader"></select></div>
+        <div class="form-group"><label>Location</label><select id="tally-location"></select></div>
       </div>
     </div>
 
-    <!-- Log type sections -->
     <div id="log-types-container"></div>
 
-    <!-- Add log type -->
     <div class="toolbar">
       <button class="btn-secondary" onclick="App.addLogTypeRow()">+ Add Log Type</button>
     </div>
-
-    <!-- Save toolbar -->
     <div class="toolbar">
       <button class="btn-primary" onclick="App.saveTally()">Save Tally</button>
       <button class="btn-secondary" onclick="App.clearGrid()">Clear Grid</button>
       <button class="btn-danger" onclick="App.newTally()">New Tally</button>
       <span id="tally-status" style="font-size:13px;color:#64748b;line-height:36px;"></span>
     </div>
-
-    <div class="formula-info">
-      Volume = <code>cons * diameter^2 * length / 1000000</code> (m3) — computed via Schemata. Cons default 0.7854.
-    </div>
   </div>
 
-  <!-- History Tab -->
   <div class="panel" id="tab-history">
     <div class="card">
       <h3>Tally History</h3>
@@ -201,7 +177,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- References Tab -->
   <div class="panel" id="tab-refs">
     <div class="card">
       <h3>Reference Data</h3>
@@ -211,7 +186,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -223,30 +197,119 @@ function toast(msg, type='info') {
   clearTimeout(el._t);
   el._t = setTimeout(() => el.className = 'toast', 3000);
 }
-
 function setDot(state) {
-  const d = document.getElementById('status-dot');
-  d.className = 'dot' + (state ? ' ' + state : '');
+  document.getElementById('status-dot').className = 'dot' + (state ? ' ' + state : '');
 }
-
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
-// Volume calc: cons * dia^2 * length / 1000000
-function calcVolume(cons, dia, length) {
-  return cons * dia * dia * length / 1000000;
-}
+// ── CALC engine (frontend mirror — same as Schemata worker) ──────
+const CALC = {
+  tokenize(expr) {
+    const tokens = []; let i = 0;
+    while (i < expr.length) {
+      const ch = expr[i];
+      if (/\s/.test(ch)) { i++; continue; }
+      if (/\d/.test(ch) || (ch === '.' && /\d/.test(expr[i+1]))) {
+        let n = ''; while (i < expr.length && /[\d.]/.test(expr[i])) n += expr[i++];
+        tokens.push({ t:'num', v:Number(n) }); continue;
+      }
+      if (ch === "'" || ch === '"') {
+        const q = ch; let s = ''; i++;
+        while (i < expr.length && expr[i] !== q) { if (expr[i] === '\\' && expr[i+1]) i++; s += expr[i]; i++; }
+        i++; tokens.push({ t:'str', v:s }); continue;
+      }
+      if (/[a-zA-Z_]/.test(ch)) {
+        let id = ''; while (i < expr.length && /[a-zA-Z0-9_]/.test(expr[i])) id += expr[i++];
+        tokens.push({ t:'id', v:id }); continue;
+      }
+      const two = expr.slice(i, i+2);
+      if (['==','!=','<=','>=','&&','||','**','??'].includes(two)) { tokens.push({ t:'op', v:two }); i+=2; continue; }
+      if ('+-*/%<>!?:(){}.,'.includes(ch)) { tokens.push({ t:'op', v:ch }); i++; continue; }
+      i++;
+    }
+    return tokens;
+  },
+  parse(tokens) {
+    let pos = 0;
+    const peek = () => tokens[pos], eat = () => tokens[pos++];
+    function expect(v) { const tk = eat(); if (!tk || tk.v !== v) throw new Error(`Expected '${v}'`); return tk; }
+    function parseExpr(minPrec = 0) {
+      let left = parseUnary();
+      while (true) {
+        const tk = peek(); if (!tk || tk.t !== 'op') break;
+        const prec = CALC.prec(tk.v); if (prec === null || prec < minPrec) break;
+        const op = eat().v;
+        if (op === '?') { const t = parseExpr(0); expect(':'); left = { type:'ternary', cond:left, then:t, else:parseExpr(0) }; }
+        else left = { type:'binop', op, left, right:parseExpr(prec+1) };
+      }
+      return left;
+    }
+    function parseUnary() {
+      const tk = peek();
+      if (tk && tk.t === 'op' && (tk.v === '-' || tk.v === '!')) { eat(); return { type:'unary', op:tk.v, expr:parseUnary() }; }
+      return parsePrimary();
+    }
+    function parsePrimary() {
+      const tk = peek();
+      if (!tk) throw new Error('Unexpected end');
+      if (tk.t === 'num') { eat(); return { type:'lit', value:tk.v }; }
+      if (tk.t === 'str') { eat(); return { type:'lit', value:tk.v }; }
+      if (tk.t === 'op' && tk.v === '(') { eat(); const e = parseExpr(0); expect(')'); return e; }
+      if (tk.t === 'id') {
+        const name = eat().v;
+        if (peek()?.t === 'op' && peek().v === '(') {
+          eat(); const args = [];
+          while (peek() && !(peek().t === 'op' && peek().v === ')')) { args.push(parseExpr(0)); if (peek()?.t === 'op' && peek().v === ',') eat(); }
+          expect(')'); return { type:'call', name, args };
+        }
+        return { type:'ref', name };
+      }
+      throw new Error('Unexpected token');
+    }
+    const ast = parseExpr(0);
+    if (pos < tokens.length) throw new Error('Unexpected token after expression');
+    return ast;
+  },
+  prec(op) { return { '||':1,'&&':2,'==':3,'!=':3,'<':3,'<=':3,'>':3,'>=':3,'??':4,'+':5,'-':5,'*':6,'/':6,'%':6,'**':7 }[op] ?? null; },
+  evaluate(ast, ctx) {
+    switch (ast.type) {
+      case 'lit': return ast.value;
+      case 'ref': return ctx[ast.name] !== undefined ? ctx[ast.name] : 0;
+      case 'unary': { const v = CALC.evaluate(ast.expr, ctx); return ast.op === '-' ? -v : !v; }
+      case 'binop': {
+        const l = CALC.evaluate(ast.left, ctx), r = CALC.evaluate(ast.right, ctx);
+        switch (ast.op) {
+          case '+': return (typeof l==='string'||typeof r==='string') ? String(l??'')+String(r??'') : l+r;
+          case '-': return l-r; case '*': return l*r; case '/': return r===0?0:l/r; case '%': return r===0?0:l%r;
+          case '**': return Math.pow(l,r); case '==': return l==r; case '!=': return l!=r;
+          case '<': return l<r; case '<=': return l<=r; case '>': return l>r; case '>=': return l>=r;
+          case '&&': return l&&r; case '||': return l||r; case '??': return l??r;
+        }
+        return 0;
+      }
+      case 'ternary': return CALC.evaluate(ast.cond,ctx) ? CALC.evaluate(ast.then,ctx) : CALC.evaluate(ast.else,ctx);
+      case 'call': {
+        const fns = { round:([n,p])=>p!=null?Number(n.toFixed(p)):Math.round(n), ceil:([n])=>Math.ceil(n), floor:([n])=>Math.floor(n), abs:([n])=>Math.abs(n),
+          pow:([b,e])=>Math.pow(b,e), sqrt:([n])=>Math.sqrt(n), len:([s])=>typeof s==='string'?s.length:0, if:([c,t,e])=>c?t:e };
+        const fn = fns[ast.name]; if (!fn) throw new Error(`Unknown fn: ${ast.name}`);
+        return fn(ast.args.map(a => CALC.evaluate(a, ctx)));
+      }
+    }
+    return 0;
+  },
+  run(expr, ctx) {
+    try { return CALC.evaluate(CALC.parse(CALC.tokenize(expr)), ctx); }
+    catch(e) { return NaN; }
+  }
+};
 
 // ── App ──────────────────────────────────────────────────────────
 const App = {
-  base: '',
-  connected: false,
-  schemasReady: false,
-
-  currentTallyId: null,
-  logTypeRows: [],
-  diaMin: 8,
-  diaMax: 80,
-  colsPerRow: 4,  // diameters per row in the table
+  base: '', connected: false, schemasReady: false,
+  currentTallyId: null, logTypeRows: [],
+  diaMin: 8, diaMax: 80, colsPerRow: 4,
+  defaultFormula: '0.7854 * diameter * diameter * length / 1000000 * quantity',
 
   // ── Connection ──────────────────────────────────────────────
   async connect() {
@@ -257,88 +320,65 @@ const App = {
     localStorage.setItem('tally_api_url', url);
     urlEl.value = url;
     setDot('loading');
-
     try {
       const r = await fetch(url + '/schemas');
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const data = await r.json();
       const names = (data.data || []).map(s => s.name || s);
-
-      const required = ['tally_headers', 'tally_items', 'suppliers', 'graders', 'locations'];
+      const required = ['tally_headers','tally_items','suppliers','graders','locations'];
       const missing = required.filter(n => !names.includes(n));
-
-      App.connected = true;
-      setDot('ok');
+      App.connected = true; setDot('ok');
       document.getElementById('btn-connect').textContent = 'Connected';
       document.getElementById('btn-connect').classList.add('connected');
-
-      if (missing.length) {
-        document.getElementById('setup-banner').style.display = 'block';
-        App.schemasReady = false;
-      } else {
-        document.getElementById('setup-banner').style.display = 'none';
-        App.schemasReady = true;
-        await App.loadRefs();
-        App.initTally();
-      }
+      if (missing.length) { document.getElementById('setup-banner').style.display = 'block'; App.schemasReady = false; }
+      else { document.getElementById('setup-banner').style.display = 'none'; App.schemasReady = true; await App.loadRefs(); App.initTally(); }
       toast('Connected', 'ok');
-    } catch(e) {
-      setDot('err');
-      toast('Connection failed: ' + e.message, 'err');
-    }
+    } catch(e) { setDot('err'); toast('Connection failed: ' + e.message, 'err'); }
   },
 
   // ── Setup schemas ───────────────────────────────────────────
   async setup() {
     const url = App.base;
     const schemas = [
-      { name: 'suppliers', fields: { name: { type:'string', required:true }, code: { type:'string' }, contact: { type:'string' } } },
-      { name: 'graders', fields: { name: { type:'string', required:true }, code: { type:'string' } } },
-      { name: 'locations', fields: { name: { type:'string', required:true }, code: { type:'string' } } },
-      { name: 'tally_headers', fields: {
-        date: { type:'string', required:true },
-        supplier_id: { type:'string', required:true },
-        grader_id: { type:'string', required:true },
-        location_id: { type:'string', required:true },
-        notes: { type:'string' },
-      }},
+      { name: 'suppliers', fields: { name:{ type:'string', required:true }, code:{ type:'string' }, contact:{ type:'string' } } },
+      { name: 'graders', fields: { name:{ type:'string', required:true }, code:{ type:'string' } } },
+      { name: 'locations', fields: { name:{ type:'string', required:true }, code:{ type:'string' } } },
+      { name: 'tally_headers', fields: { date:{ type:'string', required:true }, supplier_id:{ type:'string', required:true }, grader_id:{ type:'string', required:true }, location_id:{ type:'string', required:true }, notes:{ type:'string' } } },
       { name: 'tally_items', fields: {
-        tally_id: { type:'string', required:true },
-        log_type: { type:'string', required:true },
-        length: { type:'number', required:true },
-        quality: { type:'string' },
-        cons: { type:'number' },
-        diameter: { type:'number', required:true },
-        quantity: { type:'number', required:true },
-        volume: { type:'number', computed: { expr: 'cons * diameter * diameter * length / 1000000 * quantity', precision: 4 } },
+        tally_id:{ type:'string', required:true }, log_type:{ type:'string', required:true },
+        length:{ type:'number', required:true }, quality:{ type:'string' },
+        diameter:{ type:'number', required:true }, quantity:{ type:'number', required:true },
+        volume:{ type:'number', computed:{ expr: App.defaultFormula, precision: 4 } },
       }}
     ];
-
     try {
       for (const schema of schemas) {
-        const r = await fetch(url + '/schemas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(schema)
-        });
-        if (!r.ok) {
-          const err = await r.json();
-          if (!err.error?.includes('already exists')) {
-            throw new Error(`Failed to create ${schema.name}: ${err.error || r.status}`);
-          }
-        }
+        const r = await fetch(url + '/schemas', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(schema) });
+        if (!r.ok) { const err = await r.json(); if (!err.error?.includes('already exists')) throw new Error(`Failed: ${schema.name}: ${err.error||r.status}`); }
       }
-      document.getElementById('setup-banner').style.display = 'none';
-      App.schemasReady = true;
-      toast('All schemas created', 'ok');
-      await App.loadRefs();
-      App.initTally();
-    } catch(e) {
-      toast('Setup failed: ' + e.message, 'err');
-    }
+      document.getElementById('setup-banner').style.display = 'none'; App.schemasReady = true;
+      toast('All schemas created', 'ok'); await App.loadRefs(); App.initTally();
+    } catch(e) { toast('Setup failed: ' + e.message, 'err'); }
   },
 
-  // ── Tab switching ────────────────────────────────────────────
+  // ── Update schema formula ───────────────────────────────────
+  async updateSchemaFormula(formula) {
+    try {
+      // Get current schema
+      const gr = await fetch(App.base + '/schemas/tally_items');
+      if (!gr.ok) return;
+      const gd = await gr.json();
+      const schema = gd.data;
+      // Update volume computed expr
+      schema.fields.volume = { type:'number', computed:{ expr: formula, precision: 4 } };
+      await fetch(App.base + '/schemas/tally_items', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schema)
+      });
+    } catch(e) { /* silent — formula update is best-effort */ }
+  },
+
   switchTab(name) {
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
@@ -346,232 +386,149 @@ const App = {
     if (name === 'refs') App.renderRefs();
   },
 
-  // ── Load reference data ─────────────────────────────────────
   async loadRefs() {
-    const load = async (col) => {
-      const r = await fetch(App.base + '/api/' + col + '?limit=200');
-      const d = await r.json();
-      return d.data || [];
-    };
+    const load = async (col) => { const r = await fetch(App.base + '/api/' + col + '?limit=200'); const d = await r.json(); return d.data || []; };
     const [suppliers, graders, locations] = await Promise.all([load('suppliers'), load('graders'), load('locations')]);
-    App.suppliers = suppliers;
-    App.graders = graders;
-    App.locations = locations;
-
-    const fill = (id, items) => {
-      const el = document.getElementById(id);
-      el.innerHTML = '<option value="">-- Select --</option>' +
-        items.map(s => `<option value="${s.id}">${s.name || s.code || s.id}</option>`).join('');
-    };
-    fill('tally-supplier', suppliers);
-    fill('tally-grader', graders);
-    fill('tally-location', locations);
+    App.suppliers = suppliers; App.graders = graders; App.locations = locations;
+    const fill = (id, items) => { document.getElementById(id).innerHTML = '<option value="">-- Select --</option>' + items.map(s => `<option value="${s.id}">${esc(s.name||s.code||s.id)}</option>`).join(''); };
+    fill('tally-supplier', suppliers); fill('tally-grader', graders); fill('tally-location', locations);
   },
 
-  // ── Init tally ──────────────────────────────────────────────
   initTally() {
     document.getElementById('tally-date').value = new Date().toISOString().slice(0,10);
     if (App.logTypeRows.length === 0) App.addLogTypeRow();
   },
 
-  // ── Log type rows ───────────────────────────────────────────
   addLogTypeRow(data) {
-    const row = {
-      id: uid(),
-      logType: data?.logType || '',
-      length: data?.length || '',
-      quality: data?.quality || 'Super',
-      cons: data?.cons ?? 0.7854,
-      diameters: data?.diameters || {},
-    };
+    const row = { id: uid(), logType: data?.logType || '', length: data?.length || '', quality: data?.quality || 'Super',
+      formula: data?.formula || App.defaultFormula, diameters: data?.diameters || {} };
     App.logTypeRows.push(row);
     App.renderLogTypes();
     return row;
   },
+  removeLogTypeRow(id) { App.logTypeRows = App.logTypeRows.filter(r => r.id !== id); App.renderLogTypes(); },
 
-  removeLogTypeRow(id) {
-    App.logTypeRows = App.logTypeRows.filter(r => r.id !== id);
-    App.renderLogTypes();
+  // Evaluate formula for a single item
+  evalFormula(row, dia, qty) {
+    const ctx = {
+      diameter: dia, quantity: qty, length: parseFloat(row.length) || 0,
+      cons: 0.7854, // still available as a convenience var
+    };
+    const result = CALC.run(row.formula, ctx);
+    return result;
   },
 
   renderLogTypes() {
     const container = document.getElementById('log-types-container');
     const C = App.colsPerRow;
-
     container.innerHTML = App.logTypeRows.map(row => {
       // Totals
       let totalQty = 0, totalVol = 0, count = 0;
-      const cons = parseFloat(row.cons) || 0.7854;
-      const len = parseFloat(row.length) || 0;
       for (let d = App.diaMin; d <= App.diaMax; d++) {
         const q = row.diameters[d] || 0;
-        if (q > 0) { totalQty += q; totalVol += calcVolume(cons, d, len) * q; count++; }
+        if (q > 0) {
+          totalQty += q;
+          const v = App.evalFormula(row, d, q);
+          if (!isNaN(v)) totalVol += v;
+          count++;
+        }
       }
 
-      // Build table: columns fill top-to-bottom (Tetris style), then next column
-      const allDias = [];
-      for (let d = App.diaMin; d <= App.diaMax; d++) allDias.push(d);
-      const total = allDias.length;
-      const rowsPerCol = Math.ceil(total / C);
-
+      // Table
+      const allDias = []; for (let d = App.diaMin; d <= App.diaMax; d++) allDias.push(d);
+      const total = allDias.length, rowsPerCol = Math.ceil(total / C);
       let tableHtml = '<table class="dia-table"><thead><tr>';
       for (let c = 0; c < C; c++) tableHtml += '<th>Dia</th><th>Qty</th>';
       tableHtml += '</tr></thead><tbody>';
-
       for (let r = 0; r < rowsPerCol; r++) {
         tableHtml += '<tr>';
         for (let c = 0; c < C; c++) {
           const idx = c * rowsPerCol + r;
-          if (idx >= total) {
-            tableHtml += '<td style="background:#0f172a"></td><td style="background:#0f172a"></td>';
-            continue;
-          }
-          const dia = allDias[idx];
-          const val = row.diameters[dia] || '';
-          tableHtml += `<td style="background:#0f172a;color:#64748b;font-size:12px;font-weight:700;padding:4px 6px;cursor:default">${dia}</td>`;
-          tableHtml += `<td><input type="number" min="0" step="1" placeholder="0"
-            data-row="${row.id}" data-dia="${dia}"
-            value="${val}"
-            oninput="App.onDiaInput(this)"
-            onkeydown="App.onDiaKey(event, this)"
-            onfocus="this.select()"></td>`;
+          if (idx >= total) { tableHtml += '<td style="background:#0f172a"></td><td style="background:#0f172a"></td>'; continue; }
+          const dia = allDias[idx], val = row.diameters[dia] || '';
+          tableHtml += `<td style="background:#0f172a;color:#64748b;font-size:12px;font-weight:700;padding:4px 6px">${dia}</td>`;
+          tableHtml += `<td><input type="number" min="0" step="1" placeholder="0" data-row="${row.id}" data-dia="${dia}" value="${val}" oninput="App.onDiaInput(this)" onkeydown="App.onDiaKey(event,this)" onfocus="this.select()"></td>`;
         }
         tableHtml += '</tr>';
       }
-
       tableHtml += '</tbody></table>';
 
       return `<div class="log-type-section" data-row-id="${row.id}">
         <div class="log-type-header">
-          <input type="text" placeholder="Log Type (e.g. Meranti)" value="${row.logType}"
-            style="background:transparent;border:none;color:#f8fafc;font-size:14px;font-weight:700;width:180px;outline:none;"
-            data-row="${row.id}" data-field="logType"
-            onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event, this)">
-          <span class="meta">
-            L=<input type="number" placeholder="Length" value="${row.length}" step="1" min="0"
-              style="width:56px;background:transparent;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 6px;font-size:12px;text-align:center;outline:none;"
-              data-row="${row.id}" data-field="length"
-              onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event, this)">
-          </span>
-          <span class="meta">
-            Q=<select style="background:#0f172a;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px;font-size:12px;outline:none;"
-              data-row="${row.id}" data-field="quality"
-              onchange="App.onHeaderChange(this)">
-              <option value="Super" ${row.quality==='Super'?'selected':''}>Super</option>
-              <option value="A" ${row.quality==='A'?'selected':''}>A</option>
-              <option value="B" ${row.quality==='B'?'selected':''}>B</option>
-              <option value="C" ${row.quality==='C'?'selected':''}>C</option>
-              <option value="D" ${row.quality==='D'?'selected':''}>D</option>
-            </select>
-          </span>
-          <span class="meta">
-            K=<input type="number" placeholder="0.7854" value="${row.cons}" step="0.0001" min="0"
-              style="width:58px;background:transparent;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 6px;font-size:12px;text-align:center;outline:none;"
-              data-row="${row.id}" data-field="cons"
-              onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event, this)">
-          </span>
+          <input type="text" placeholder="Log Type" value="${esc(row.logType)}" style="background:transparent;border:none;color:#f8fafc;font-size:14px;font-weight:700;width:150px;outline:none;" data-row="${row.id}" data-field="logType" onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event,this)">
+          <span class="meta">L=<input type="number" placeholder="Length" value="${row.length}" step="1" min="0" style="width:56px;background:transparent;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 6px;font-size:12px;text-align:center;outline:none;" data-row="${row.id}" data-field="length" onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event,this)"></span>
+          <span class="meta">Q=<select style="background:#0f172a;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px;font-size:12px;outline:none;" data-row="${row.id}" data-field="quality" onchange="App.onHeaderChange(this)">
+            <option value="Super" ${row.quality==='Super'?'selected':''}>Super</option><option value="A" ${row.quality==='A'?'selected':''}>A</option><option value="B" ${row.quality==='B'?'selected':''}>B</option><option value="C" ${row.quality==='C'?'selected':''}>C</option><option value="D" ${row.quality==='D'?'selected':''}>D</option></select></span>
           <span class="meta">Qty:<strong class="total-qty" style="color:#f8fafc;margin-left:2px">${totalQty}</strong></span>
-          <span class="meta">Vol:<strong class="total-vol" style="color:#f8fafc;margin-left:2px">${totalVol.toFixed(4)}</strong>m3</span>
-          <div class="actions">
-            <button onclick="App.removeLogTypeRow('${row.id}')">Remove</button>
-          </div>
+          <span class="meta">Vol:<strong class="total-vol" style="color:#f8fafc;margin-left:2px">${isNaN(totalVol)?'ERR':totalVol.toFixed(4)}</strong></span>
+          <div class="actions"><button onclick="App.removeLogTypeRow('${row.id}')">Remove</button></div>
+        </div>
+        <div class="formula-row">
+          <label>fx</label>
+          <input type="text" value="${esc(row.formula)}" placeholder="e.g. 0.7854 * diameter * diameter * length / 1000000 * quantity" data-row="${row.id}" data-field="formula" onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event,this)">
         </div>
         <div class="log-type-body">${tableHtml}</div>
-        <div class="totals-bar">
-          <span class="total-item">Diameters: <strong>${count}</strong></span>
-        </div>
+        <div class="totals-bar"><span class="total-item">Diameters: <strong>${count}</strong></span></div>
       </div>`;
     }).join('');
   },
 
-  // ── Handle diameter input ───────────────────────────────────
   onDiaInput(el) {
-    const rowId = el.dataset.row;
-    const dia = parseInt(el.dataset.dia);
-    const val = parseInt(el.value) || 0;
+    const rowId = el.dataset.row, dia = parseInt(el.dataset.dia), val = parseInt(el.value) || 0;
     const row = App.logTypeRows.find(r => r.id === rowId);
-    if (row) {
-      if (val > 0) row.diameters[dia] = val;
-      else delete row.diameters[dia];
-    }
-    // Highlight
+    if (row) { if (val > 0) row.diameters[dia] = val; else delete row.diameters[dia]; }
     const td = el.parentElement;
     td.style.background = val > 0 ? '#1e3a5f' : '';
     td.previousElementSibling.style.background = val > 0 ? '#1e3a5f' : '#0f172a';
     App.updateTotals(rowId);
   },
 
-  // Enter in diameter input → move down (same column, next row)
   onDiaKey(event, el) {
     if (event.key === 'Enter') {
       event.preventDefault();
-      const td = el.parentElement;
-      const tr = td.parentElement;
-      const nextTr = tr.nextElementSibling;
+      const tr = el.parentElement.parentElement, nextTr = tr.nextElementSibling;
       if (!nextTr) return;
-      // Find which input column this is: count preceding <td> that contain inputs
-      const tds = Array.from(tr.children);
-      // Input cells are every other td (after each label td)
-      // Find the index of this td's input among all inputs in this row
       const inputIdx = Array.from(tr.querySelectorAll('input')).indexOf(el);
       if (inputIdx < 0) return;
       const nextInputs = nextTr.querySelectorAll('input');
-      if (nextInputs[inputIdx]) {
-        nextInputs[inputIdx].focus();
-        nextInputs[inputIdx].select();
-      }
+      if (nextInputs[inputIdx]) { nextInputs[inputIdx].focus(); nextInputs[inputIdx].select(); }
     }
   },
 
-  // ── Handle header field changes ─────────────────────────────
   onHeaderChange(el) {
-    const rowId = el.dataset.row;
-    const field = el.dataset.field;
+    const rowId = el.dataset.row, field = el.dataset.field;
     const row = App.logTypeRows.find(r => r.id === rowId);
     if (!row) return;
-
     if (field === 'logType') row.logType = el.value;
     else if (field === 'length') { row.length = el.value; App.updateTotals(rowId); }
     else if (field === 'quality') row.quality = el.value;
-    else if (field === 'cons') { row.cons = el.value; App.updateTotals(rowId); }
+    else if (field === 'formula') { row.formula = el.value; App.updateTotals(rowId); }
   },
 
-  // Enter in header input → move to next header input or first dia input
   onHeaderKey(event, el) {
     if (event.key === 'Enter') {
       event.preventDefault();
       const section = el.closest('.log-type-section');
-      const headerInputs = Array.from(section.querySelectorAll('.log-type-header input, .log-type-header select'));
+      const headerInputs = Array.from(section.querySelectorAll('.log-type-header input, .log-type-header select, .formula-row input'));
       const idx = headerInputs.indexOf(el);
-      if (idx >= 0 && idx < headerInputs.length - 1) {
-        headerInputs[idx + 1].focus();
-      } else {
-        // Jump to first dia input
-        const firstDia = section.querySelector('.dia-table input');
-        if (firstDia) { firstDia.focus(); firstDia.select(); }
-      }
+      if (idx >= 0 && idx < headerInputs.length - 1) headerInputs[idx + 1].focus();
+      else { const firstDia = section.querySelector('.dia-table input'); if (firstDia) { firstDia.focus(); firstDia.select(); } }
     }
   },
 
-  // ── Update totals (lightweight, no re-render) ────────────────
   updateTotals(rowId) {
     const row = App.logTypeRows.find(r => r.id === rowId);
     if (!row) return;
     const section = document.querySelector(`[data-row-id="${rowId}"]`);
     if (!section) return;
-
-    const cons = parseFloat(row.cons) || 0.7854;
-    const len = parseFloat(row.length) || 0;
     let totalQty = 0, totalVol = 0, count = 0;
     for (let d = App.diaMin; d <= App.diaMax; d++) {
       const q = row.diameters[d] || 0;
-      if (q > 0) { totalQty += q; totalVol += calcVolume(cons, d, len) * q; count++; }
+      if (q > 0) { totalQty += q; const v = App.evalFormula(row, d, q); if (!isNaN(v)) totalVol += v; count++; }
     }
-
-    const qtyEl = section.querySelector('.total-qty');
-    const volEl = section.querySelector('.total-vol');
+    const qtyEl = section.querySelector('.total-qty'), volEl = section.querySelector('.total-vol');
     if (qtyEl) qtyEl.textContent = totalQty;
-    if (volEl) volEl.textContent = totalVol.toFixed(4);
+    if (volEl) volEl.textContent = isNaN(totalVol) ? 'ERR' : totalVol.toFixed(4);
     const totalItem = section.querySelector('.total-item strong');
     if (totalItem) totalItem.textContent = count;
   },
@@ -582,35 +539,24 @@ const App = {
     const supplierId = document.getElementById('tally-supplier').value;
     const graderId = document.getElementById('tally-grader').value;
     const locationId = document.getElementById('tally-location').value;
-
-    if (!date || !supplierId || !graderId || !locationId) {
-      toast('Fill in date, supplier, grader, location', 'err'); return;
-    }
-
+    if (!date || !supplierId || !graderId || !locationId) { toast('Fill in date, supplier, grader, location', 'err'); return; }
     const hasData = App.logTypeRows.some(r => Object.values(r.diameters).some(v => v > 0));
     if (!hasData) { toast('No diameter data entered', 'err'); return; }
-
     const statusEl = document.getElementById('tally-status');
     statusEl.textContent = 'Saving...';
 
     try {
+      // Update schema formula (use first row's formula as the schema default)
+      const formula = App.logTypeRows[0]?.formula || App.defaultFormula;
+      await App.updateSchemaFormula(formula);
+
       let headerId = App.currentTallyId;
       if (!headerId) {
-        const hr = await fetch(App.base + '/api/tally_headers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date, supplier_id: supplierId, grader_id: graderId, location_id: locationId })
-        });
+        const hr = await fetch(App.base + '/api/tally_headers', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ date, supplier_id:supplierId, grader_id:graderId, location_id:locationId }) });
         if (!hr.ok) throw new Error('Failed to create tally header');
-        const hd = await hr.json();
-        headerId = hd.data.id;
-        App.currentTallyId = headerId;
+        const hd = await hr.json(); headerId = hd.data.id; App.currentTallyId = headerId;
       } else {
-        await fetch(App.base + '/api/tally_headers/' + headerId, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date, supplier_id: supplierId, grader_id: graderId, location_id: locationId })
-        });
+        await fetch(App.base + '/api/tally_headers/' + headerId, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ date, supplier_id:supplierId, grader_id:graderId, location_id:locationId }) });
       }
 
       let saved = 0;
@@ -620,165 +566,108 @@ const App = {
           const qty = row.diameters[d] || 0;
           if (qty <= 0) continue;
           await fetch(App.base + '/api/tally_items', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tally_id: headerId,
-              log_type: row.logType,
-              length: parseFloat(row.length) || 0,
-              quality: row.quality,
-              cons: parseFloat(row.cons) || 0.7854,
-              diameter: d,
-              quantity: qty,
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tally_id:headerId, log_type:row.logType, length:parseFloat(row.length)||0, quality:row.quality, diameter:d, quantity:qty })
           });
           saved++;
         }
       }
-
       statusEl.textContent = `Saved! ${saved} items.`;
       toast(`Tally saved: ${saved} items`, 'ok');
-    } catch(e) {
-      statusEl.textContent = 'Error: ' + e.message;
-      toast('Save failed: ' + e.message, 'err');
-    }
+    } catch(e) { statusEl.textContent = 'Error: ' + e.message; toast('Save failed: ' + e.message, 'err'); }
   },
 
-  // ── Load tally from history ─────────────────────────────────
+  // ── Load tally ──────────────────────────────────────────────
   async loadTally(headerId) {
     try {
       const hr = await fetch(App.base + '/api/tally_headers/' + headerId);
-      const hd = await hr.json();
-      const header = hd.data;
+      const hd = await hr.json(); const header = hd.data;
       document.getElementById('tally-date').value = header.date || '';
       document.getElementById('tally-supplier').value = header.supplier_id || '';
       document.getElementById('tally-grader').value = header.grader_id || '';
       document.getElementById('tally-location').value = header.location_id || '';
 
-      const ir = await fetch(App.base + '/api/tally_items?limit=1000&tally_id=' + headerId);
-      const id = await ir.json();
-      const items = id.data || [];
+      // Load schema to get current formula
+      let formula = App.defaultFormula;
+      try {
+        const sr = await fetch(App.base + '/schemas/tally_items');
+        const sd = await sr.json();
+        formula = sd.data?.fields?.volume?.computed?.expr || App.defaultFormula;
+      } catch(e) {}
 
-      // Group by log_type + length + quality + cons
+      const ir = await fetch(App.base + '/api/tally_items?limit=1000&tally_id=' + headerId);
+      const id = await ir.json(); const items = id.data || [];
       const groups = {};
       for (const item of items) {
-        const key = `${item.log_type}|${item.length}|${item.quality}|${item.cons}`;
-        if (!groups[key]) groups[key] = { logType: item.log_type, length: item.length, quality: item.quality, cons: item.cons, diameters: {} };
+        const key = `${item.log_type}|${item.length}|${item.quality}`;
+        if (!groups[key]) groups[key] = { logType:item.log_type, length:item.length, quality:item.quality, formula, diameters:{} };
         groups[key].diameters[item.diameter] = item.quantity;
       }
-
-      App.logTypeRows = [];
-      App.currentTallyId = headerId;
+      App.logTypeRows = []; App.currentTallyId = headerId;
       for (const g of Object.values(groups)) App.addLogTypeRow(g);
       if (App.logTypeRows.length === 0) App.addLogTypeRow();
-
       App.switchTab('tally');
       document.getElementById('tally-status').textContent = `Editing tally: ${headerId}`;
       toast('Tally loaded', 'ok');
-    } catch(e) {
-      toast('Load failed: ' + e.message, 'err');
-    }
+    } catch(e) { toast('Load failed: ' + e.message, 'err'); }
   },
 
   // ── History ──────────────────────────────────────────────────
   async loadHistory() {
     try {
       const r = await fetch(App.base + '/api/tally_headers?limit=100');
-      const d = await r.json();
-      const headers = d.data || [];
-      const tbody = document.getElementById('history-body');
-      tbody.innerHTML = headers.map(h => `<tr>
-        <td>${h.id.slice(0,8)}</td>
-        <td>${h.date || '-'}</td>
-        <td>${h.supplier_id || '-'}</td>
-        <td>${h.location_id || '-'}</td>
-        <td>-</td><td>-</td>
-        <td class="actions-cell">
-          <button onclick="App.loadTally('${h.id}')">Load</button>
-          <button onclick="App.deleteTally('${h.id}')" style="border-color:#7f1d1d;color:#fca5a5;">Delete</button>
-        </td>
-      </tr>`).join('');
+      const d = await r.json(); const headers = d.data || [];
+      document.getElementById('history-body').innerHTML = headers.map(h => `<tr>
+        <td>${h.id.slice(0,8)}</td><td>${h.date||'-'}</td><td>${h.supplier_id||'-'}</td><td>${h.location_id||'-'}</td><td>-</td><td>-</td>
+        <td class="actions-cell"><button onclick="App.loadTally('${h.id}')">Load</button><button onclick="App.deleteTally('${h.id}')" style="border-color:#7f1d1d;color:#fca5a5;">Delete</button></td></tr>`).join('');
     } catch(e) { toast('Failed to load history', 'err'); }
   },
-
   async deleteTally(id) {
     if (!confirm('Delete this tally and all its items?')) return;
     try {
       const ir = await fetch(App.base + '/api/tally_items?limit=1000&tally_id=' + id);
-      const id2 = await ir.json();
-      const items = id2.data || [];
-      for (const item of items) await fetch(App.base + '/api/tally_items/' + item.id, { method: 'DELETE' });
-      await fetch(App.base + '/api/tally_headers/' + id, { method: 'DELETE' });
-      toast('Tally deleted', 'ok');
-      App.loadHistory();
+      const id2 = await ir.json(); const items = id2.data || [];
+      for (const item of items) await fetch(App.base + '/api/tally_items/' + item.id, { method:'DELETE' });
+      await fetch(App.base + '/api/tally_headers/' + id, { method:'DELETE' });
+      toast('Tally deleted', 'ok'); App.loadHistory();
     } catch(e) { toast('Delete failed: ' + e.message, 'err'); }
   },
 
   // ── References ──────────────────────────────────────────────
   refsData: {},
-
   async renderRefs() {
-    const cols = ['suppliers', 'graders', 'locations'];
-    const labels = { suppliers: 'Suppliers', graders: 'Graders', locations: 'Locations' };
+    const cols = ['suppliers','graders','locations'];
+    const labels = { suppliers:'Suppliers', graders:'Graders', locations:'Locations' };
     let html = '';
     for (const col of cols) {
-      const r = await fetch(App.base + '/api/' + col + '?limit=200');
-      const d = await r.json();
-      const items = d.data || [];
-      html += `<h3 style="margin-top:16px">${labels[col]}</h3>`;
-      html += `<div style="display:flex;gap:8px;margin:8px 0;">`;
+      const r = await fetch(App.base + '/api/' + col + '?limit=200'); const d = await r.json(); const items = d.data || [];
+      html += `<h3 style="margin-top:16px">${labels[col]}</h3><div style="display:flex;gap:8px;margin:8px 0;">`;
       html += `<input type="text" id="ref-${col}-name" placeholder="Name" style="background:#0f172a;border:1px solid #475569;border-radius:4px;padding:6px 10px;color:#e2e8f0;font-size:13px;">`;
       html += `<input type="text" id="ref-${col}-code" placeholder="Code" style="background:#0f172a;border:1px solid #475569;border-radius:4px;padding:6px 10px;color:#e2e8f0;font-size:13px;width:80px;">`;
-      html += `<button class="btn-primary" style="padding:6px 14px;font-size:13px;" onclick="App.addRef('${col}')">Add</button>`;
-      html += `</div>`;
+      html += `<button class="btn-primary" style="padding:6px 14px;font-size:13px;" onclick="App.addRef('${col}')">Add</button></div>`;
       html += `<table class="history-table"><thead><tr><th>Name</th><th>Code</th><th>Actions</th></tr></thead><tbody>`;
-      for (const item of items) {
-        html += `<tr><td>${item.name}</td><td>${item.code || '-'}</td>
-          <td class="actions-cell"><button onclick="App.deleteRef('${col}','${item.id}')">Delete</button></td></tr>`;
-      }
+      for (const item of items) html += `<tr><td>${esc(item.name)}</td><td>${esc(item.code||'-')}</td><td class="actions-cell"><button onclick="App.deleteRef('${col}','${item.id}')">Delete</button></td></tr>`;
       html += `</tbody></table>`;
     }
     document.getElementById('refs-content').innerHTML = html;
   },
-
   async addRef(col) {
     const name = document.getElementById(`ref-${col}-name`).value.trim();
     const code = document.getElementById(`ref-${col}-code`).value.trim();
     if (!name) { toast('Name required', 'err'); return; }
-    await fetch(App.base + '/api/' + col, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, code })
-    });
-    toast('Added', 'ok');
-    await App.loadRefs();
-    App.renderRefs();
+    await fetch(App.base + '/api/' + col, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name, code }) });
+    toast('Added', 'ok'); await App.loadRefs(); App.renderRefs();
   },
-
   async deleteRef(col, id) {
     if (!confirm('Delete?')) return;
-    await fetch(App.base + '/api/' + col + '/' + id, { method: 'DELETE' });
-    toast('Deleted', 'ok');
-    await App.loadRefs();
-    App.renderRefs();
+    await fetch(App.base + '/api/' + col + '/' + id, { method:'DELETE' });
+    toast('Deleted', 'ok'); await App.loadRefs(); App.renderRefs();
   },
 
-  // ── Clear / New ─────────────────────────────────────────────
-  clearGrid() {
-    for (const row of App.logTypeRows) row.diameters = {};
-    App.renderLogTypes();
-    toast('Grid cleared', 'info');
-  },
-
-  newTally() {
-    App.currentTallyId = null;
-    App.logTypeRows = [];
-    App.initTally();
-    document.getElementById('tally-status').textContent = 'New tally';
-    toast('New tally started', 'info');
-  },
+  clearGrid() { for (const row of App.logTypeRows) row.diameters = {}; App.renderLogTypes(); toast('Grid cleared', 'info'); },
+  newTally() { App.currentTallyId = null; App.logTypeRows = []; App.initTally(); document.getElementById('tally-status').textContent = 'New tally'; toast('New tally started', 'info'); },
 };
 
-// ── Auto-connect ──────────────────────────────────────────────
 (function() {
   const saved = localStorage.getItem('tally_api_url');
   const urlEl = document.getElementById('api-url');
