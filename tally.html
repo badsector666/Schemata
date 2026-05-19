@@ -186,7 +186,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
 
     <div class="formula-info">
-      Volume = <code>cons * diameter^2 * length / 100000</code> (m3) — computed via Schemata. Cons default 0.7854.
+      Volume = <code>cons * diameter^2 * length / 1000000</code> (m3) — computed via Schemata. Cons default 0.7854.
     </div>
   </div>
 
@@ -231,10 +231,9 @@ function setDot(state) {
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
-// Volume calc: cons * dia^2 * length / 100000
-// With cons=0.7854, dia=15, length=130: 0.7854 * 225 * 130 / 100000 = 0.2297295
+// Volume calc: cons * dia^2 * length / 1000000
 function calcVolume(cons, dia, length) {
-  return cons * dia * dia * length / 100000;
+  return cons * dia * dia * length / 1000000;
 }
 
 // ── App ──────────────────────────────────────────────────────────
@@ -311,7 +310,7 @@ const App = {
         cons: { type:'number' },
         diameter: { type:'number', required:true },
         quantity: { type:'number', required:true },
-        volume: { type:'number', computed: { expr: 'cons * diameter * diameter * length / 100000 * quantity', precision: 4 } },
+        volume: { type:'number', computed: { expr: 'cons * diameter * diameter * length / 1000000 * quantity', precision: 4 } },
       }}
     ];
 
@@ -502,17 +501,24 @@ const App = {
     App.updateTotals(rowId);
   },
 
-  // Enter in diameter input → move to next input
+  // Enter in diameter input → move down (same column, next row)
   onDiaKey(event, el) {
     if (event.key === 'Enter') {
       event.preventDefault();
-      // Find all dia inputs in this section
-      const section = el.closest('.log-type-section');
-      const inputs = Array.from(section.querySelectorAll('.dia-table input'));
-      const idx = inputs.indexOf(el);
-      if (idx >= 0 && idx < inputs.length - 1) {
-        inputs[idx + 1].focus();
-        inputs[idx + 1].select();
+      const td = el.parentElement;
+      const tr = td.parentElement;
+      const nextTr = tr.nextElementSibling;
+      if (!nextTr) return;
+      // Find which input column this is: count preceding <td> that contain inputs
+      const tds = Array.from(tr.children);
+      // Input cells are every other td (after each label td)
+      // Find the index of this td's input among all inputs in this row
+      const inputIdx = Array.from(tr.querySelectorAll('input')).indexOf(el);
+      if (inputIdx < 0) return;
+      const nextInputs = nextTr.querySelectorAll('input');
+      if (nextInputs[inputIdx]) {
+        nextInputs[inputIdx].focus();
+        nextInputs[inputIdx].select();
       }
     }
   },
