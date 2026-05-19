@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCHEMATA — Schema-Driven Data Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+/* ── Reset + Root ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0a0a08;
+  --bg1:      #111110;
+  --bg2:      #1a1a18;
+  --bg3:      #222220;
+  --border:   #2e2e2b;
+  --border2:  #3a3a36;
+  --amber:    #e8a020;
+  --amber2:   #f0b840;
+  --amber-d:  #7a5210;
+  --amber-bg: rgba(232,160,32,0.07);
+  --green:    #4caf6c;
+  --green-bg: rgba(76,175,108,0.08);
+  --red:      #cf4444;
+  --red-bg:   rgba(207,68,68,0.08);
+  --blue:     #5588cc;
+  --blue-bg:  rgba(85,136,204,0.08);
+  --text:     #c8c8c0;
+  --text2:    #808078;
+  --text3:    #4a4a45;
+  --mono:     "JetBrains Mono", monospace;
+  --display:  "Bebas Neue", sans-serif;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.5; overflow: hidden; }
+
+/* ── Layout ────────────────────────────────────────────────────── */
+#app { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
+#topbar { grid-column: 1/-1; background: var(--bg1); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; padding: 0 20px; }
+#sidebar { background: var(--bg1); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+#main    { background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+
+/* ── Topbar ────────────────────────────────────────────────────── */
+.logo { font-family: var(--display); font-size: 22px; color: var(--amber); letter-spacing: 3px; }
+.logo span { color: var(--text3); }
+#api-url-input {
+  flex: 1; max-width: 360px; background: var(--bg2); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--mono); font-size: 12px; padding: 5px 10px;
+  outline: none; transition: border-color .15s;
+}
+#api-url-input:focus { border-color: var(--amber); }
+.btn {
+  font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 5px 12px;
+  border: 1px solid var(--border2); background: var(--bg2); color: var(--text);
+  cursor: pointer; transition: all .15s; text-transform: uppercase; letter-spacing: 1px;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--amber); color: var(--amber); }
+.btn.primary { border-color: var(--amber); background: var(--amber-bg); color: var(--amber); }
+.btn.primary:hover { background: rgba(232,160,32,0.18); }
+.btn.danger { border-color: var(--red); color: var(--red); background: transparent; }
+.btn.danger:hover { background: var(--red-bg); }
+.btn.success { border-color: var(--green); color: var(--green); }
+.btn.success:hover { background: var(--green-bg); }
+#status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; transition: background .3s; }
+#status-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+#status-dot.err { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+
+/* ── Sidebar ────────────────────────────────────────────────────── */
+.sidebar-header {
+  padding: 12px 14px 8px; font-size: 10px; color: var(--text3); text-transform: uppercase;
+  letter-spacing: 2px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+}
+.sidebar-header .btn { padding: 3px 8px; font-size: 10px; }
+#schema-list { flex: 1; overflow-y: auto; }
+.schema-item {
+  padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: background .12s; display: flex; align-items: center; gap: 8px;
+}
+.schema-item:hover { background: var(--bg2); }
+.schema-item.active { background: var(--amber-bg); border-left: 2px solid var(--amber); }
+.schema-item .name { color: var(--text); font-size: 12px; font-weight: 500; flex: 1; }
+.schema-item .meta { font-size: 10px; color: var(--text3); }
+.schema-item .ver-badge {
+  font-size: 9px; background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text2); padding: 1px 5px; border-radius: 2px;
+}
+.sidebar-section { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+#tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--bg1); padding: 0 16px; gap: 2px; flex-shrink: 0; }
+.tab { padding: 10px 16px; font-size: 11px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; letter-spacing: 1px; transition: all .12s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+/* ── Content area ────────────────────────────────────────────────── */
+#content { flex: 1; overflow-y: auto; padding: 20px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Section titles ────────────────────────────────────────────── */
+.section-title {
+  font-family: var(--display); font-size: 18px; color: var(--amber); letter-spacing: 3px;
+  margin-bottom: 4px; display: flex; align-items: baseline; gap: 12px;
+}
+.section-title .sub { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 1px; font-weight: 400; }
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ── Schema editor ───────────────────────────────────────────────── */
+.schema-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.editor-pane { display: flex; flex-direction: column; gap: 12px; }
+.field-row {
+  background: var(--bg1); border: 1px solid var(--border); display: grid;
+  grid-template-columns: 140px 90px 1fr 90px auto; gap: 8px; padding: 8px 10px; align-items: center;
+}
+.field-row:hover { border-color: var(--border2); }
+.field-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+input[type=text], input[type=number], select, textarea {
+  background: var(--bg2); border: 1px solid var(--border2); color: var(--text);
+  font-family: var(--mono); font-size: 12px; padding: 5px 8px; outline: none; width: 100%;
+  transition: border-color .12s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--amber); }
+select option { background: var(--bg2); }
+textarea { resize: vertical; min-height: 60px; }
+.checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
+input[type=checkbox] { accent-color: var(--amber); width: 13px; height: 13px; }
+
+/* ── JSON editor ─────────────────────────────────────────────────── */
+.json-editor {
+  background: var(--bg1); border: 1px solid var(--border); font-family: var(--mono);
+  font-size: 12px; color: var(--text); padding: 12px; min-height: 200px; outline: none;
+  resize: vertical; width: 100%; line-height: 1.6;
+}
+.json-editor:focus { border-color: var(--amber); }
+
+/* ── Table ───────────────────────────────────────────────────────── */
+.data-table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead { background: var(--bg1); }
+th { padding: 8px 12px; text-align: left; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); font-weight: 500; white-space: nowrap; }
+th.sortable { cursor: pointer; }
+th.sortable:hover { color: var(--amber); }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tr:hover td { background: var(--bg1); }
+.td-actions { display: flex; gap: 6px; }
+.badge {
+  display: inline-block; padding: 1px 6px; font-size: 10px; border-radius: 2px;
+  border: 1px solid var(--border2); color: var(--text2); background: var(--bg2);
+}
+.badge.green { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.badge.red   { border-color: var(--red);   color: var(--red);   background: var(--red-bg); }
+.badge.amber { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
+.badge.blue  { border-color: var(--blue);  color: var(--blue);  background: var(--blue-bg); }
+
+/* ── Pagination ──────────────────────────────────────────────────── */
+.pagination { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 11px; color: var(--text2); }
+
+/* ── Modal ───────────────────────────────────────────────────────── */
+#modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);
+}
+#modal-overlay.open { display: flex; }
+#modal {
+  background: var(--bg1); border: 1px solid var(--border2); width: 700px; max-width: 95vw;
+  max-height: 90vh; display: flex; flex-direction: column; animation: slide-in .15s ease;
+}
+@keyframes slide-in { from { transform: translateY(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+#modal-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+#modal-title { font-family: var(--display); font-size: 16px; letter-spacing: 2px; color: var(--amber); }
+#modal-body { padding: 18px; overflow-y: auto; flex: 1; }
+#modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ── Version timeline ────────────────────────────────────────────── */
+.version-timeline { display: flex; flex-direction: column; gap: 0; }
+.ver-item {
+  border-left: 2px solid var(--border); padding: 0 0 16px 16px; position: relative;
+  margin-left: 6px;
+}
+.ver-item::before {
+  content: ""; position: absolute; left: -5px; top: 4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--bg3); border: 1px solid var(--border2);
+}
+.ver-item.active-ver::before { background: var(--amber); border-color: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.ver-item.active-ver { border-left-color: var(--amber-d); }
+.ver-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.ver-num { font-weight: 700; color: var(--amber); font-size: 13px; }
+.ver-ts  { font-size: 10px; color: var(--text3); }
+.ver-log { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+.ver-fields { font-size: 10px; color: var(--text3); }
+
+/* ── JSON Renderer ───────────────────────────────────────────────── */
+.jf-form { display: flex; flex-direction: column; gap: 12px; }
+.jf-field { display: flex; flex-direction: column; gap: 4px; }
+.jf-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+.jf-hint { font-size: 10px; color: var(--text3); }
+.jf-req  { color: var(--red); font-size: 11px; }
+.jf-immutable { color: var(--amber); font-size: 9px; }
+.toggle-wrap { display: flex; align-items: center; gap: 8px; }
+.toggle-btn  { width: 36px; height: 20px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; cursor: pointer; position: relative; transition: background .15s; }
+.toggle-btn.on { background: var(--amber-d); border-color: var(--amber); }
+.toggle-btn::after { content: ""; position: absolute; left: 3px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--text2); transition: all .15s; }
+.toggle-btn.on::after { left: 19px; background: var(--amber); }
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; background: var(--bg2); border: 1px solid var(--border2); padding: 6px; min-height: 34px; }
+.tags-wrap:focus-within { border-color: var(--amber); }
+.tag { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); padding: 2px 8px; font-size: 11px; display: flex; align-items: center; gap: 4px; }
+.tag-x { cursor: pointer; color: var(--text3); font-size: 13px; line-height: 1; }
+.tag-x:hover { color: var(--red); }
+.tags-input { border: none; background: transparent; color: var(--text); font-family: var(--mono); font-size: 12px; outline: none; min-width: 80px; flex: 1; }
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+#toast { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast-msg {
+  padding: 10px 14px; font-size: 12px; border: 1px solid var(--border2); background: var(--bg2);
+  animation: toast-in .2s ease; max-width: 320px; display: flex; align-items: center; gap: 8px;
+}
+@keyframes toast-in { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.toast-msg.ok  { border-color: var(--green); color: var(--green); }
+.toast-msg.err { border-color: var(--red);   color: var(--red);   }
+.toast-msg.info { border-color: var(--amber); color: var(--amber); }
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.empty { padding: 48px; text-align: center; color: var(--text3); font-size: 12px; }
+.empty .icon { font-size: 32px; margin-bottom: 12px; opacity: .4; }
+
+/* ── Toolbar ─────────────────────────────────────────────────────── */
+.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.toolbar-spacer { flex: 1; }
+.search-box { background: var(--bg2); border: 1px solid var(--border2); color: var(--text); font-family: var(--mono); font-size: 12px; padding: 5px 10px; outline: none; width: 220px; }
+.search-box:focus { border-color: var(--amber); }
+
+/* ── Fields editor table ─────────────────────────────────────────── */
+.fields-table { width: 100%; border-collapse: collapse; }
+.fields-table th, .fields-table td { padding: 6px 8px; border: 1px solid var(--border); vertical-align: middle; }
+.fields-table th { background: var(--bg2); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+.fields-table td input, .fields-table td select { padding: 4px 6px; font-size: 11px; }
+.del-row-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 2px 4px; }
+.del-row-btn:hover { color: var(--red); }
+
+/* ── Code block ──────────────────────────────────────────────────── */
+.code-block { background: var(--bg1); border: 1px solid var(--border); padding: 12px; font-size: 11px; color: var(--text2); overflow-x: auto; white-space: pre; line-height: 1.6; }
+
+/* ── Relation panel ──────────────────────────────────────────────── */
+.rel-field-row { background: var(--bg1); border: 1px solid var(--border); padding: 10px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 12px; }
+.rel-field-row:hover { border-color: var(--border2); }
+.rel-type-badge { font-size: 10px; padding: 2px 8px; border-radius: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.rel-hasOne     { background: rgba(85,136,204,.15); color: var(--blue); border: 1px solid var(--blue); }
+.rel-belongsTo  { background: rgba(85,136,204,.08); color: #7aacee; border: 1px solid #7aacee; }
+.rel-hasMany    { background: rgba(76,175,108,.12); color: var(--green); border: 1px solid var(--green); }
+.rel-manyToMany { background: rgba(232,160,32,.10); color: var(--amber); border: 1px solid var(--amber); }
+.rel-arrow { color: var(--text3); font-size: 14px; }
+.rel-detail { font-size: 11px; color: var(--text2); flex: 1; }
+.rel-detail strong { color: var(--text); }
+
+/* ── Backup panel ─────────────────────────────────────────────────── */
+.backup-section { margin-bottom: 8px; }
+.backup-section-title { font-size: 10px; color: var(--amber); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+.backup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.backup-card { background: var(--bg1); border: 1px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.backup-card-title { font-size: 12px; color: var(--text); font-weight: 500; }
+.backup-card-desc { font-size: 11px; color: var(--text2); line-height: 1.6; }
+.backup-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+.drop-zone {
+  border: 1px dashed var(--border2); background: var(--bg1); padding: 28px;
+  text-align: center; cursor: pointer; font-size: 12px; color: var(--text2);
+  transition: all .15s; user-select: none;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
+.drop-icon { font-size: 24px; margin-bottom: 8px; opacity: .5; }
+.import-result-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+.import-result-row:last-child { border-bottom: none; }
+
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bg3); }
+::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+/* ── Placeholder ─────────────────────────────────────────────────── */
+.no-schema-msg { padding: 60px 40px; text-align: center; }
+.no-schema-msg .big { font-family: var(--display); font-size: 48px; color: var(--text3); letter-spacing: 4px; margin-bottom: 12px; }
+.no-schema-msg p { color: var(--text3); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Topbar -->
+  <header id="topbar">
+    <div class="logo">SCHEMATA<span>//</span></div>
+    <input id="api-url-input" type="text" placeholder="Worker URL: https://your-worker.workers.dev" />
+    <button class="btn primary" onclick="App.connect()">Connect</button>
+    <div id="status-dot" title="Not connected"></div>
+    <div class="toolbar-spacer"></div>
+    <span style="font-size:10px;color:var(--text3)">Schema-Driven Data Console</span>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <span>Schemas</span>
+      <button class="btn" onclick="App.openNewSchema()">+ New</button>
+    </div>
+    <div id="schema-list"><div class="empty">No connection</div></div>
+  </aside>
+
+  <!-- Main -->
+  <main id="main">
+    <div id="no-schema" class="no-schema-msg">
+      <div class="big">NO SCHEMA</div>
+      <p>Connect to your worker and select or create a schema</p>
+    </div>
+
+    <div id="schema-view" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+      <div id="tab-bar">
+        <div class="tab active" data-tab="data">Data</div>
+        <div class="tab" data-tab="schema">Schema</div>
+        <div class="tab" data-tab="versions">Versions</div>
+        <div class="tab" data-tab="relations">Relations</div>
+        <div class="tab" data-tab="ui-layout">UI Layout</div>
+        <div class="tab" data-tab="backup">Backup</div>
+      </div>
+      <div id="content">
+        <!-- DATA TAB -->
+        <div class="panel active" id="tab-data">
+          <div class="toolbar">
+            <div class="section-title" id="data-title">— <span class="sub">0 records</span></div>
+            <div class="toolbar-spacer"></div>
+            <input class="search-box" id="search-box" placeholder="Filter…" oninput="App.applySearch()">
+            <button class="btn primary" onclick="App.openCreateItem()">+ Add Record</button>
+            <button class="btn" onclick="App.loadData()">↺ Refresh</button>
+            <button class="btn" onclick="App.recalculateAll()" id="recalc-btn">⟳ Recalculate</button>
+          </div>
+          <div id="data-table-container"><div class="empty"><div class="icon">⬡</div>No data</div></div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+
+        <!-- SCHEMA TAB -->
+        <div class="panel" id="tab-schema">
+          <div class="toolbar">
+            <div class="section-title" id="schema-edit-title">Schema <span class="sub">fields</span></div>
+            <div class="toolbar-spacer"></div>
+            <button class="btn" onclick="App.addFieldRow()">+ Add Field</button>
+            <button class="btn primary" onclick="App.saveSchema()">Save Version</button>
+          </div>
+          <div style="margin-bottom:12px;display:flex;gap:10px;">
+            <div style="flex:1">
+              <div class="field-label">Description</div>
+              <input type="text" id="schema-desc" placeholder="Optional description">
+            </div>
+            <div style="flex:1">
+              <div class="field-label">Changelog (this version)</div>
+              <input type="text" id="schema-changelog" placeholder="What changed?">
+            </div>
+          </div>
+          <div id="fields-editor"></div>
+        </div>
+
+        <!-- VERSIONS TAB -->
+        <div class="panel" id="tab-versions">
+          <div class="toolbar">
+            <div class="section-title">Version History <span class="sub">immutable snapshots</span></div>
+            <div class="toolbar-spacer"></div>
+            <button class="btn" onclick="App.loadVersions()">↺ Refresh</button>
+          </div>
+          <div id="versions-container"></div>
+        </div>
+
+        <!-- RELATIONS TAB -->
+        <div class="panel" id="tab-relations">
+          <div class="toolbar">
+            <div class="section-title" id="rel-title">Relations <span class="sub">schema graph</span></div>
+            <div class="toolbar-spacer"></div>
+            <button class="btn" onclick="RelUI.loadMap()">↺ Reload Map</button>
+            <button class="btn primary" onclick="RelUI.openAddRelation()">+ Add Relation</button>
+          </div>
+
+          <!-- Graph canvas -->
+          <div id="rel-graph-wrap" style="position:relative;background:var(--bg1);border:1px solid var(--border);margin-bottom:16px;overflow:hidden;">
+            <canvas id="rel-graph" width="900" height="260" style="display:block;width:100%;"></canvas>
+            <div id="rel-graph-empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;pointer-events:none">No relations defined yet</div>
+          </div>
+
+          <!-- Current schema relation fields -->
+          <div style="margin-bottom:10px;font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:2px">Relation Fields on this Schema</div>
+          <div id="rel-fields-list"></div>
+
+          <!-- Related records panel (shown when browsing) -->
+          <div id="rel-browse-panel" style="display:none;margin-top:16px">
+            <div style="margin-bottom:8px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Browse Related Records</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap" id="rel-browse-controls"></div>
+            <div id="rel-browse-result"></div>
+          </div>
+        </div>
+
+        <!-- UI LAYOUT TAB -->
+        <div class="panel" id="tab-ui-layout">
+          <div class="toolbar">
+            <div class="section-title">UI Layout <span class="sub">JSON render config</span></div>
+            <div class="toolbar-spacer"></div>
+            <button class="btn" onclick="App.refreshUILayout()">↺ From Schema</button>
+            <button class="btn primary" onclick="App.saveUILayout()">Save UI Layout</button>
+          </div>
+          <div class="field-label" style="margin-bottom:6px">Edit the ui layout object below. This controls form widgets, table columns, and detail sections.</div>
+          <textarea id="ui-layout-editor" class="json-editor" style="min-height:380px"></textarea>
+          <div id="ui-layout-error" style="color:var(--red);font-size:11px;margin-top:6px;display:none"></div>
+        </div>
+
+        <!-- BACKUP TAB -->
+        <div class="panel" id="tab-backup">
+          <div class="section-title" style="margin-bottom:16px">Backup <span class="sub">export · import · restore</span></div>
+
+          <!-- Export section -->
+          <div class="backup-section">
+            <div class="backup-section-title">▼ EXPORT</div>
+            <div class="backup-grid">
+              <div class="backup-card">
+                <div class="backup-card-title">Collection Data</div>
+                <div class="backup-card-desc">Export all records from <strong id="export-col-name">—</strong> as JSON or CSV. The file includes a schema header for safe re-import.</div>
+                <div class="backup-card-actions">
+                  <button class="btn primary" onclick="Backup.exportJSON()">↓ JSON</button>
+                  <button class="btn" onclick="Backup.exportCSV()">↓ CSV</button>
+                </div>
+              </div>
+              <div class="backup-card">
+                <div class="backup-card-title">Full Schema Registry</div>
+                <div class="backup-card-desc">Export all schemas with every version as a single JSON backup. Use this to clone to another worker or keep an offline snapshot.</div>
+                <div class="backup-card-actions">
+                  <button class="btn primary" onclick="Backup.exportSchemas()">↓ schemas.json</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- Import section -->
+          <div class="backup-section">
+            <div class="backup-section-title">▲ IMPORT DATA</div>
+            <div class="backup-card-desc" style="margin-bottom:12px">
+              Import records into <strong id="import-col-name">—</strong>. Accepts JSON array, SCHEMATA JSON export, or SCHEMATA CSV export.
+              CSV requires the <code style="color:var(--amber);font-size:10px"># SCHEMATA-EXPORT</code> header line. Headers are validated against the active schema.
+            </div>
+
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+              <div>
+                <div class="field-label">Import Mode</div>
+                <select id="import-mode" style="width:160px">
+                  <option value="append">Append (keep existing)</option>
+                  <option value="replace">Replace (wipe + reload)</option>
+                </select>
+              </div>
+              <div style="flex:1"></div>
+            </div>
+
+            <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="Backup.dragOver(event)" ondragleave="Backup.dragLeave(event)" ondrop="Backup.drop(event)">
+              <div class="drop-icon">⬡</div>
+              <div>Drop <strong>.json</strong> or <strong>.csv</strong> file here</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:4px">or click to browse</div>
+              <input type="file" id="file-input" accept=".json,.csv" style="display:none" onchange="Backup.fileSelected(event)">
+            </div>
+
+            <div id="import-file-info" style="display:none;margin-top:10px;padding:10px;background:var(--bg1);border:1px solid var(--border);font-size:11px"></div>
+
+            <div style="margin-top:10px;display:flex;gap:8px">
+              <button class="btn primary" onclick="Backup.runImport()" id="import-btn" disabled>▲ Import</button>
+              <button class="btn" onclick="Backup.clearFile()" id="import-clear-btn" style="display:none">✕ Clear</button>
+            </div>
+
+            <div id="import-result" style="display:none;margin-top:12px"></div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- Schema restore section -->
+          <div class="backup-section">
+            <div class="backup-section-title">▲ RESTORE SCHEMA REGISTRY</div>
+            <div class="backup-card-desc" style="margin-bottom:12px">
+              Restore schemas from a <code style="color:var(--amber);font-size:10px">schemas_backup_*.json</code> file.
+              Existing schemas with the same name will have their versions merged (new versions added, existing versions preserved).
+            </div>
+
+            <div id="schema-drop-zone" class="drop-zone" onclick="document.getElementById('schema-file-input').click()" ondragover="Backup.dragOver(event)" ondragleave="Backup.dragLeave(event)" ondrop="Backup.schemaDrop(event)">
+              <div class="drop-icon">◈</div>
+              <div>Drop <strong>schemas_backup_*.json</strong> here</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:4px">or click to browse</div>
+              <input type="file" id="schema-file-input" accept=".json" style="display:none" onchange="Backup.schemaFileSelected(event)">
+            </div>
+
+            <div id="schema-import-file-info" style="display:none;margin-top:10px;padding:10px;background:var(--bg1);border:1px solid var(--border);font-size:11px"></div>
+
+            <div style="margin-top:10px;display:flex;gap:8px">
+              <button class="btn primary" onclick="Backup.runSchemaImport()" id="schema-import-btn" disabled>▲ Restore Schemas</button>
+              <button class="btn" onclick="Backup.clearSchemaFile()" id="schema-clear-btn" style="display:none">✕ Clear</button>
+            </div>
+
+            <div id="schema-import-result" style="display:none;margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-header">
+      <div id="modal-title">MODAL</div>
+      <button class="btn" onclick="App.closeModal()">✕ Close</button>
+    </div>
+    <div id="modal-body"></div>
+    <div id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── CALC engine (frontend mirror for live preview) ───────────────
+const CALC = {
+  tokenize(expr) {
+    const tokens = [];
+    let i = 0;
+    while (i < expr.length) {
+      const ch = expr[i];
+      if (/\s/.test(ch)) { i++; continue; }
+      if (/\d/.test(ch) || (ch === '.' && /\d/.test(expr[i+1]))) {
+        let n = '';
+        while (i < expr.length && /[\d.]/.test(expr[i])) n += expr[i++];
+        tokens.push({ t: 'num', v: Number(n) });
+        continue;
+      }
+      if (ch === "'" || ch === '"') {
+        const q = ch; let s = ''; i++;
+        while (i < expr.length && expr[i] !== q) { if (expr[i] === '\\' && expr[i+1]) i++; s += expr[i]; i++; }
+        i++;
+        tokens.push({ t: 'str', v: s });
+        continue;
+      }
+      if (/[a-zA-Z_]/.test(ch)) {
+        let id = '';
+        while (i < expr.length && /[a-zA-Z0-9_]/.test(expr[i])) id += expr[i++];
+        tokens.push({ t: 'id', v: id });
+        continue;
+      }
+      const two = expr.slice(i, i + 2);
+      if (['==', '!=', '<=', '>=', '&&', '||', '**', '??'].includes(two)) {
+        tokens.push({ t: 'op', v: two }); i += 2; continue;
+      }
+      if ('+-*/%<>!?:(){}.,'.includes(ch)) {
+        tokens.push({ t: 'op', v: ch }); i++; continue;
+      }
+      i++;
+    }
+    return tokens;
+  },
+  parse(tokens) {
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const eat = () => tokens[pos++];
+    function expect(v) { const tk = eat(); if (!tk || tk.v !== v) throw new Error(`Expected '${v}'`); return tk; }
+    function parseExpr(minPrec = 0) {
+      let left = parseUnary();
+      while (true) {
+        const tk = peek();
+        if (!tk || tk.t !== 'op') break;
+        const prec = CALC.prec(tk.v);
+        if (prec === null || prec < minPrec) break;
+        const op = eat().v;
+        if (op === '?') {
+          const then_ = parseExpr(0); expect(':'); const else_ = parseExpr(0);
+          left = { type: 'ternary', cond: left, then: then_, else: else_ };
+        } else {
+          const right = parseExpr(prec + 1);
+          left = { type: 'binop', op, left, right };
+        }
+      }
+      return left;
+    }
+    function parseUnary() {
+      const tk = peek();
+      if (tk && tk.t === 'op' && (tk.v === '-' || tk.v === '!')) {
+        const op = eat().v; return { type: 'unary', op, expr: parseUnary() };
+      }
+      return parsePrimary();
+    }
+    function parsePrimary() {
+      const tk = peek();
+      if (!tk) throw new Error('Unexpected end');
+      if (tk.t === 'num') { eat(); return { type: 'lit', value: tk.v }; }
+      if (tk.t === 'str') { eat(); return { type: 'lit', value: tk.v }; }
+      if (tk.t === 'op' && tk.v === '(') { eat(); const e = parseExpr(0); expect(')'); return e; }
+      if (tk.t === 'id') {
+        const name = eat().v;
+        if (peek()?.t === 'op' && peek().v === '(') {
+          eat();
+          const args = [];
+          while (peek() && !(peek().t === 'op' && peek().v === ')')) {
+            args.push(parseExpr(0));
+            if (peek()?.t === 'op' && peek().v === ',') eat();
+          }
+          expect(')');
+          return { type: 'call', name, args };
+        }
+        return { type: 'ref', name };
+      }
+      throw new Error(`Unexpected token: ${JSON.stringify(tk)}`);
+    }
+    const ast = parseExpr(0);
+    if (pos < tokens.length) throw new Error('Unexpected token after expression');
+    return ast;
+  },
+  prec(op) {
+    const t = { '||':1,'&&':2,'==':3,'!=':3,'<':3,'<=':3,'>':3,'>=':3,'??':4,'+':5,'-':5,'*':6,'/':6,'%':6,'**':7 };
+    return t[op] ?? null;
+  },
+  evaluate(ast, ctx) {
+    switch (ast.type) {
+      case 'lit': return ast.value;
+      case 'ref': { const v = ctx[ast.name]; return v !== undefined ? v : 0; }
+      case 'unary': { const v = CALC.evaluate(ast.expr, ctx); return ast.op === '-' ? -v : !v; }
+      case 'binop': {
+        const l = CALC.evaluate(ast.left, ctx), r = CALC.evaluate(ast.right, ctx);
+        switch (ast.op) {
+          case '+': return (typeof l==='string'||typeof r==='string') ? String(l??'')+String(r??'') : l+r;
+          case '-': return l-r; case '*': return l*r;
+          case '/': return r===0?0:l/r; case '%': return r===0?0:l%r;
+          case '**': return Math.pow(l,r);
+          case '==': return l==r; case '!=': return l!=r;
+          case '<': return l<r; case '<=': return l<=r; case '>': return l>r; case '>=': return l>=r;
+          case '&&': return l&&r; case '||': return l||r; case '??': return l??r;
+        }
+        return 0;
+      }
+      case 'ternary': return CALC.evaluate(ast.cond,ctx) ? CALC.evaluate(ast.then,ctx) : CALC.evaluate(ast.else,ctx);
+      case 'call': return CALC.callFn(ast.name, ast.args.map(a => CALC.evaluate(a, ctx)));
+    }
+    return 0;
+  },
+  callFn(name, args) {
+    const fns = {
+      round:([n,p])=>p!=null?Number(n.toFixed(p)):Math.round(n),
+      ceil:([n])=>Math.ceil(n), floor:([n])=>Math.floor(n), abs:([n])=>Math.abs(n),
+      min:(a)=>Math.min(...a), max:(a)=>Math.max(...a),
+      pow:([b,e])=>Math.pow(b,e), sqrt:([n])=>Math.sqrt(n), log:([n])=>Math.log(n),
+      len:([s])=>typeof s==='string'?s.length:Array.isArray(s)?s.length:0,
+      upper:([s])=>String(s).toUpperCase(), lower:([s])=>String(s).toLowerCase(),
+      trim:([s])=>String(s).trim(), concat:(a)=>a.join(''),
+      substring:([s,st,en])=>String(s).slice(st??0,en),
+      if:([c,t,e])=>c?t:e, now:()=>new Date().toISOString(),
+      date:([s])=>new Date(s).getTime()/1000,
+      isNaN:([n])=>isNaN(n), number:([s])=>Number(s), string:([v])=>String(v),
+    };
+    const fn = fns[name];
+    if (!fn) throw new Error(`Unknown function: ${name}`);
+    return fn(args);
+  },
+  run(expr, item) {
+    try { return CALC.evaluate(CALC.parse(CALC.tokenize(expr)), item); }
+    catch(e) { return { _calcError: e.message }; }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// JSON RENDERER ENGINE
+// Renders form inputs from UI layout + schema fields
+// ═══════════════════════════════════════════════════════════════════
+
+const JR = {
+  // Render a full form from ui.form layout + fields spec
+  renderForm(ui, fields, existing = null) {
+    const formFields = ui?.form?.fields ?? Object.keys(fields).map(k => ({ key: k }));
+    const els = formFields.map(ff => {
+      const key = ff.key;
+      const rules = fields[key];
+      if (!rules) return '';
+      const val = existing?.[key];
+      const isImmutable = rules.immutable && existing;
+      return `
+        <div class="jf-field" data-key="${key}">
+          <label class="jf-label">
+            ${ff.label ?? key}
+            ${rules.required ? '<span class="jf-req">*</span>' : ''}
+            ${isImmutable ? '<span class="jf-immutable">◆ IMMUTABLE</span>' : ''}
+          </label>
+          ${ff.hint ? `<div class="jf-hint">${ff.hint}</div>` : ''}
+          ${JR.renderWidget(key, ff, rules, val, isImmutable)}
+        </div>`;
+    });
+    return `<div class="jf-form">${els.join('')}</div>`;
+  },
+
+  renderWidget(key, ff, rules, val, disabled) {
+    // Computed fields: read-only with live preview
+    if (rules.computed?.expr) {
+      const v = val != null ? val : '—';
+      return `<div style="display:flex;align-items:center;gap:8px">
+        <input type="text" id="field-${key}" value="${String(v).replace(/"/g,'&quot;')}" disabled style="opacity:.6;flex:1;background:var(--bg3);cursor:default" title="Auto-calculated: ${rules.computed.expr}">
+        <span style="font-size:9px;color:var(--amber);white-space:nowrap">fx</span>
+      </div>
+      <input type="hidden" id="computed-${key}" value='${JSON.stringify(rules.computed)}'>`;
+    }
+    const w = ff.widget ?? JR.defaultWidget(rules);
+    const dis = disabled ? 'disabled style="opacity:.5"' : '';
+    const v = val ?? (rules.default ?? '');
+
+    if (w === 'toggle') {
+      const on = (val === true || val === 'true');
+      return `<div class="toggle-wrap">
+        <div class="toggle-btn ${on?'on':''}" data-key="${key}" onclick="JR.toggle(this)" ${dis}></div>
+        <span style="font-size:11px;color:var(--text2)" id="toggle-label-${key}">${on?'true':'false'}</span>
+        <input type="hidden" id="field-${key}" value="${on}">
+      </div>`;
+    }
+    if (w === 'select') {
+      const opts = ff.options ?? rules.enum?.map(o => ({label:o,value:o})) ?? [];
+      return `<select id="field-${key}" ${dis}>${opts.map(o => `<option value="${o.value}"${o.value==v?' selected':''}>${o.label}</option>`).join('')}</select>`;
+    }
+    if (w === 'textarea') {
+      return `<textarea id="field-${key}" ${dis}>${v}</textarea>`;
+    }
+    if (w === 'number') {
+      return `<input type="number" id="field-${key}" value="${v}" ${rules.min!==undefined?`min="${rules.min}"`:''}  ${rules.max!==undefined?`max="${rules.max}"`:''}  ${dis}>`;
+    }
+    if (w === 'tags') {
+      const tags = Array.isArray(v) ? v : [];
+      return `<div class="tags-wrap" id="tags-wrap-${key}">
+        ${tags.map(t=>`<span class="tag">${t}<span class="tag-x" onclick="JR.removeTag('${key}',this)">×</span></span>`).join('')}
+        <input class="tags-input" placeholder="Type + Enter" onkeydown="JR.addTag('${key}',event)" ${dis}>
+      </div>
+      <input type="hidden" id="field-${key}" value='${JSON.stringify(tags)}'>`;
+    }
+    if (w === 'json') {
+      return `<textarea id="field-${key}" class="json-editor" style="min-height:80px" ${dis}>${typeof v==='object'?JSON.stringify(v,null,2):v}</textarea>`;
+    }
+    // default: text
+    return `<input type="text" id="field-${key}" value="${String(v).replace(/"/g,'&quot;')}" ${dis}>`;
+  },
+
+  defaultWidget(rules) {
+    if (rules.type === 'boolean') return 'toggle';
+    if (rules.type === 'number')  return 'number';
+    if (rules.type === 'array')   return 'tags';
+    if (rules.type === 'object')  return 'json';
+    if (rules.enum)               return 'select';
+    if (rules.max && rules.max > 200) return 'textarea';
+    return 'text';
+  },
+
+  toggle(el) {
+    if (el.hasAttribute('disabled')) return;
+    el.classList.toggle('on');
+    const key = el.dataset.key;
+    const on = el.classList.contains('on');
+    document.getElementById('field-' + key).value = on;
+    const lbl = document.getElementById('toggle-label-' + key);
+    if (lbl) lbl.textContent = on ? 'true' : 'false';
+  },
+
+  addTag(key, e) {
+    if (e.key !== 'Enter' && e.key !== ',') return;
+    e.preventDefault();
+    const inp = e.target;
+    const val = inp.value.trim();
+    if (!val) return;
+    const wrap = document.getElementById('tags-wrap-' + key);
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${val}<span class="tag-x" onclick="JR.removeTag('${key}',this)">×</span>`;
+    wrap.insertBefore(tag, inp);
+    inp.value = '';
+    JR.syncTags(key);
+  },
+
+  removeTag(key, x) {
+    x.parentElement.remove();
+    JR.syncTags(key);
+  },
+
+  syncTags(key) {
+    const wrap = document.getElementById('tags-wrap-' + key);
+    const tags = [...wrap.querySelectorAll('.tag')].map(t => t.childNodes[0].textContent.trim());
+    document.getElementById('field-' + key).value = JSON.stringify(tags);
+  },
+
+  // Collect form values back into object
+  collectForm(fields) {
+    const out = {};
+    for (const [key, rules] of Object.entries(fields)) {
+      const el = document.getElementById('field-' + key);
+      if (!el) continue;
+      let val = el.value;
+      if (rules.type === 'boolean') { val = (val === 'true'); }
+      else if (rules.type === 'number') { val = val === '' ? undefined : Number(val); }
+      else if (rules.type === 'array')  { try { val = JSON.parse(val); } catch { val = []; } }
+      else if (rules.type === 'object') { try { val = JSON.parse(val); } catch { val = {}; } }
+      if (val !== undefined && val !== '') out[key] = val;
+    }
+    return out;
+  },
+
+  // Render a table from ui.table layout
+  renderTable(ui, fields, items, onEdit, onDel) {
+    const cols = ui?.table?.columns ?? Object.keys(fields).slice(0,6).map(k=>({key:k,label:k,type:fields[k]?.type}));
+    if (!items.length) return '<div class="empty"><div class="icon">⬡</div>No records</div>';
+    const thead = `<tr>${cols.map(c=>`<th>${c.label??c.key}</th>`).join('')}<th>Actions</th></tr>`;
+    const tbody = items.map(item => {
+      const cells = cols.map(c => {
+        let v = item[c.key];
+        if (v === undefined || v === null) return '<td><span class="badge">—</span></td>';
+        if (typeof v === 'boolean') return `<td><span class="badge ${v?'green':'red'}">${v}</span></td>`;
+        if (typeof v === 'object')  return `<td><span class="badge">{…}</span></td>`;
+        const isComputed = fields[c.key]?.computed?.expr;
+        return `<td title="${String(v)}${isComputed ? ' [computed]' : ''}">${String(v)}${isComputed ? ' <span style="font-size:8px;color:var(--amber)">fx</span>' : ''}</td>`;
+      }).join('');
+      return `<tr>${cells}<td class="td-actions">
+        <button class="btn" onclick='${onEdit}("${item.id}")'>Edit</button>
+        <button class="btn danger" onclick='${onDel}("${item.id}")'>Del</button>
+      </td></tr>`;
+    }).join('');
+    return `<div class="data-table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+  },
+
+  // Render version detail fields summary
+  renderFieldsSummary(fields) {
+    if (!fields) return '—';
+    return Object.entries(fields).map(([k, r]) =>
+      `<span class="badge ${r.required?'amber':''}">${k}: ${r.type}</span>`
+    ).join(' ');
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════════════════════
+
+const App = {
+  base: '',
+  currentSchema: null,
+  currentMeta: null,
+  currentVersion: null,
+  dataItems: [],
+  pagination: { page: 1, limit: 20, total: 0, totalPages: 1 },
+  searchTerm: '',
+  sortBy: null,
+  sortDir: 'asc',
+  fieldRows: [],
+
+  // ── Connection ────────────────────────────────────────────────
+  async connect() {
+    const urlEl = document.getElementById('api-url-input');
+    let url = urlEl.value.trim().replace(/\/$/, '');
+    if (!url) url = location.origin;
+    App.base = url;
+    localStorage.setItem('worker_url', url);
+    urlEl.value = url;
+    try {
+      const r = await fetch(url + '/schemas');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      setDot('ok');
+      toast('Connected to worker', 'ok');
+      await App.loadSchemaList();
+    } catch(e) { setDot('err'); toast('Connection failed: ' + e.message, 'err'); }
+  },
+
+  // ── Schema list ───────────────────────────────────────────────
+  async loadSchemaList() {
+    const r = await api('GET', '/schemas');
+    const list = document.getElementById('schema-list');
+    if (!r.ok) { list.innerHTML = `<div class="empty">Error: ${r.error}</div>`; return; }
+    const schemas = r.data;
+    if (!schemas.length) { list.innerHTML = '<div class="empty">No schemas yet</div>'; return; }
+    list.innerHTML = schemas.map(m => `
+      <div class="schema-item ${App.currentMeta?.name===m.name?'active':''}" onclick="App.selectSchema('${m.name}')">
+        <div>
+          <div class="name">${m.name}</div>
+          <div class="meta">${m.description||'No description'}</div>
+        </div>
+        <div class="ver-badge">v${m.activeVersion}</div>
+      </div>`).join('');
+  },
+
+  async selectSchema(name) {
+    const r = await api('GET', `/schemas/${name}`);
+    if (!r.ok) { toast('Failed to load schema', 'err'); return; }
+    App.currentMeta = r.data.meta;
+    App.currentVersion = r.data.version;
+    App.currentSchema = r.data.version.fields;
+    document.getElementById('no-schema').style.display = 'none';
+    document.getElementById('schema-view').style.display = 'flex';
+    document.getElementById('data-title').innerHTML = `${name} <span class="sub">loading…</span>`;
+    document.getElementById('schema-edit-title').innerHTML = `${name} <span class="sub">v${App.currentMeta.activeVersion}</span>`;
+    document.getElementById('schema-desc').value = App.currentMeta.description || '';
+    document.getElementById('schema-changelog').value = '';
+    App.loadSchemaList();
+    App.loadData();
+    App.buildFieldsEditor();
+    App.refreshUILayout();
+    Backup.updateLabels();
+    switchTab('data');
+  },
+
+  // ── Data ──────────────────────────────────────────────────────
+  async loadData(page = 1) {
+    if (!App.currentMeta) return;
+    const col = App.currentMeta.name;
+    let qs = `?page=${page}&limit=${App.pagination.limit}`;
+    if (App.sortBy) qs += `&sortBy=${App.sortBy}&sortDir=${App.sortDir}`;
+    const r = await api('GET', `/api/${col}${qs}`);
+    if (!r.ok) { toast('Failed to load data: ' + r.error, 'err'); return; }
+    App.dataItems = r.data;
+    App.pagination = r.pagination;
+    App.renderDataTable();
+    const t = document.getElementById('data-title');
+    t.innerHTML = `${col} <span class="sub">${r.pagination.total} records · v${App.currentMeta.activeVersion}</span>`;
+  },
+
+  applySearch() {
+    App.searchTerm = document.getElementById('search-box').value.toLowerCase();
+    App.renderDataTable();
+  },
+
+  renderDataTable() {
+    const items = App.searchTerm
+      ? App.dataItems.filter(it => JSON.stringify(it).toLowerCase().includes(App.searchTerm))
+      : App.dataItems;
+    const ui = App.currentVersion?.ui;
+    const fields = App.currentSchema;
+    const container = document.getElementById('data-table-container');
+    container.innerHTML = JR.renderTable(ui, fields, items, 'App.openEditItem', 'App.confirmDelete');
+    App.renderPagination();
+  },
+
+  renderPagination() {
+    const p = App.pagination;
+    const el = document.getElementById('pagination');
+    if (!p || p.totalPages <= 1) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <button class="btn" onclick="App.loadData(${p.page-1})" ${p.page<=1?'disabled':''}>← Prev</button>
+      <span>Page ${p.page} / ${p.totalPages} &nbsp;·&nbsp; ${p.total} records</span>
+      <button class="btn" onclick="App.loadData(${p.page+1})" ${p.page>=p.totalPages?'disabled':''}>Next →</button>`;
+  },
+
+  // ── Item CRUD modals ──────────────────────────────────────────
+  openCreateItem() {
+    if (!App.currentSchema) return;
+    const ui = App.currentVersion?.ui;
+    openModal('CREATE RECORD', `
+      ${JR.renderForm(ui, App.currentSchema, null)}
+    `, [
+      { label: '✓ Create', cls: 'primary', action: 'App.createItem()' },
+      { label: 'Cancel', action: 'App.closeModal()' },
+    ]);
+    App.attachComputedListeners();
+  },
+
+  async createItem() {
+    const body = JR.collectForm(App.currentSchema);
+    const col = App.currentMeta.name;
+    const r = await api('POST', `/api/${col}`, body);
+    if (!r.ok) { toast('Error: ' + r.error + (r.details?'\n'+r.details.join('\n'):''), 'err'); return; }
+    toast('Record created', 'ok');
+    App.closeModal();
+    App.loadData(App.pagination.page);
+  },
+
+  async openEditItem(id) {
+    const col = App.currentMeta.name;
+    const r = await api('GET', `/api/${col}/${id}`);
+    if (!r.ok) { toast('Failed to load: ' + r.error, 'err'); return; }
+    const item = r.data;
+    const ui = App.currentVersion?.ui;
+    openModal(`EDIT · ${id.slice(0,12)}…`, `
+      ${JR.renderForm(ui, App.currentSchema, item)}
+    `, [
+      { label: '✓ Save', cls: 'primary', action: `App.updateItem('${id}')` },
+      { label: '✕ Delete', cls: 'danger', action: `App.confirmDelete('${id}')` },
+      { label: 'Cancel', action: 'App.closeModal()' },
+    ]);
+    App.attachComputedListeners();
+  },
+    const body = JR.collectForm(App.currentSchema);
+    const col = App.currentMeta.name;
+    const r = await api('PATCH', `/api/${col}/${id}`, body);
+    if (!r.ok) { toast('Error: ' + r.error + (r.details?'\n'+r.details.join('\n'):''), 'err'); return; }
+    toast('Record updated', 'ok');
+    App.closeModal();
+    App.loadData(App.pagination.page);
+  },
+
+  async confirmDelete(id) {
+    openModal('CONFIRM DELETE', `<p style="color:var(--red);margin-bottom:8px">Delete record <code>${id}</code>?</p><p style="color:var(--text2);font-size:11px">This cannot be undone.</p>`, [
+      { label: '✕ Delete', cls: 'danger', action: `App.deleteItem('${id}')` },
+      { label: 'Cancel', action: 'App.closeModal()' },
+    ]);
+  },
+
+  async deleteItem(id) {
+    const col = App.currentMeta.name;
+    const r = await api('DELETE', `/api/${col}/${id}`);
+    if (!r.ok) { toast('Delete failed: ' + r.error, 'err'); return; }
+    toast('Deleted', 'ok');
+    App.closeModal();
+    App.loadData(App.pagination.page);
+  },
+
+  // ── Schema fields editor ──────────────────────────────────────
+  buildFieldsEditor(fields) {
+    const f = fields ?? App.currentSchema ?? {};
+    App.fieldRows = Object.entries(f).map(([key, rules]) => ({ key, ...rules }));
+    App.renderFieldsEditor();
+  },
+
+  renderFieldsEditor() {
+    const rows = App.fieldRows;
+    const html = `
+      <table class="fields-table">
+        <thead><tr>
+          <th>Field Name</th><th>Type</th><th>Required</th><th>Immutable</th>
+          <th>Default</th><th>Min</th><th>Max</th><th>Enum (comma-sep)</th><th>Pattern</th><th>Computed (fx)</th><th></th>
+        </tr></thead>
+        <tbody id="fields-tbody">
+          ${rows.map((r,i) => `
+            <tr>
+              <td><input type="text" value="${r.key}" onchange="App.updateFieldRow(${i},'key',this.value)" style="width:120px"></td>
+              <td><select onchange="App.updateFieldRow(${i},'type',this.value)" style="width:80px">
+                ${['string','number','boolean','array','object'].map(t=>`<option ${r.type===t?'selected':''}>${t}</option>`).join('')}
+              </select></td>
+              <td style="text-align:center"><input type="checkbox" ${r.required?'checked':''} onchange="App.updateFieldRow(${i},'required',this.checked)"></td>
+              <td style="text-align:center"><input type="checkbox" ${r.immutable?'checked':''} onchange="App.updateFieldRow(${i},'immutable',this.checked)"></td>
+              <td><input type="text" value="${r.default!==undefined?JSON.stringify(r.default):''}" onchange="App.updateFieldRow(${i},'default',this.value)" style="width:80px"></td>
+              <td><input type="number" value="${r.min??''}" onchange="App.updateFieldRow(${i},'min',this.value)" style="width:55px"></td>
+              <td><input type="number" value="${r.max??''}" onchange="App.updateFieldRow(${i},'max',this.value)" style="width:55px"></td>
+              <td><input type="text" value="${r.enum?r.enum.join(','):''}" onchange="App.updateFieldRow(${i},'enum',this.value)" style="width:130px"></td>
+              <td><input type="text" value="${r.pattern??''}" onchange="App.updateFieldRow(${i},'pattern',this.value)" style="width:110px"></td>
+              <td><input type="text" value="${r.computed?.expr??''}" placeholder="e.g. price * qty" onchange="App.updateFieldRow(${i},'computed',this.value)" style="width:140px" title="Computed expression — leave empty for manual fields"></td>
+              <td><button class="del-row-btn" onclick="App.removeFieldRow(${i})">✕</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+    document.getElementById('fields-editor').innerHTML = html;
+  },
+
+  updateFieldRow(i, prop, val) {
+    const row = App.fieldRows[i];
+    if (prop === 'min' || prop === 'max') val = val === '' ? undefined : Number(val);
+    if (prop === 'required' || prop === 'immutable') {}
+    if (prop === 'enum') val = val ? val.split(',').map(s=>s.trim()).filter(Boolean) : undefined;
+    if (prop === 'default') {
+      try { val = JSON.parse(val); } catch { /* keep as string */ }
+      if (val === '') val = undefined;
+    }
+    if (prop === 'computed') {
+      val = val.trim() ? { expr: val } : undefined;
+    }
+    row[prop] = val;
+  },
+
+  addFieldRow() {
+    App.fieldRows.push({ key: 'newField', type: 'string' });
+    App.renderFieldsEditor();
+  },
+
+  removeFieldRow(i) {
+    App.fieldRows.splice(i, 1);
+    App.renderFieldsEditor();
+  },
+
+  buildFieldsObj() {
+    const obj = {};
+    for (const r of App.fieldRows) {
+      const { key, ...rules } = r;
+      if (!key) continue;
+      // Clean undefined
+      for (const k of Object.keys(rules)) if (rules[k] === undefined || rules[k] === '') delete rules[k];
+      obj[key] = rules;
+    }
+    return obj;
+  },
+
+  async saveSchema() {
+    if (!App.currentMeta) return;
+    const name = App.currentMeta.name;
+    const fields = App.buildFieldsObj();
+    const description = document.getElementById('schema-desc').value;
+    const changelog = document.getElementById('schema-changelog').value || 'Updated';
+    const body = { fields, description, changelog };
+    const r = await api('PUT', `/schemas/${name}`, body);
+    if (!r.ok) { toast('Save failed: ' + r.error, 'err'); return; }
+    toast(`Saved as v${r.data.version.version}`, 'ok');
+    App.currentMeta = r.data.meta;
+    App.currentVersion = r.data.version;
+    App.currentSchema = r.data.version.fields;
+    document.getElementById('schema-changelog').value = '';
+    App.loadSchemaList();
+    App.refreshUILayout();
+  },
+
+  // ── New schema modal ──────────────────────────────────────────
+  openNewSchema() {
+    const defaultFields = { name: { type: 'string', required: true } };
+    openModal('CREATE SCHEMA', `
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div class="field-label">Schema Name (collection identifier)</div>
+          <input type="text" id="new-schema-name" placeholder="e.g. products, orders, users">
+          <div class="jf-hint">Lowercase letters, numbers, underscores only</div>
+        </div>
+        <div>
+          <div class="field-label">Description</div>
+          <input type="text" id="new-schema-desc" placeholder="Optional description">
+        </div>
+        <div>
+          <div class="field-label">Initial Fields (JSON)</div>
+          <textarea id="new-schema-fields" class="json-editor" style="min-height:140px">${JSON.stringify(defaultFields, null, 2)}</textarea>
+        </div>
+      </div>
+    `, [
+      { label: '✓ Create', cls: 'primary', action: 'App.createSchema()' },
+      { label: 'Cancel', action: 'App.closeModal()' },
+    ]);
+  },
+
+  async createSchema() {
+    const name = document.getElementById('new-schema-name').value.trim();
+    const description = document.getElementById('new-schema-desc').value.trim();
+    let fields;
+    try { fields = JSON.parse(document.getElementById('new-schema-fields').value); }
+    catch(e) { toast('Invalid JSON in fields', 'err'); return; }
+    const r = await api('POST', '/schemas', { name, fields, description, changelog: 'Initial version' });
+    if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+    toast(`Schema "${name}" created`, 'ok');
+    App.closeModal();
+    await App.loadSchemaList();
+    App.selectSchema(name);
+  },
+
+  // ── Versions tab ──────────────────────────────────────────────
+  async loadVersions() {
+    if (!App.currentMeta) return;
+    const name = App.currentMeta.name;
+    const r = await api('GET', `/schemas/${name}/versions`);
+    if (!r.ok) { toast('Failed: ' + r.error, 'err'); return; }
+    const versions = r.data.slice().reverse(); // newest first
+    const activeVer = App.currentMeta.activeVersion;
+    const el = document.getElementById('versions-container');
+    if (!versions.length) { el.innerHTML = '<div class="empty">No versions</div>'; return; }
+    el.innerHTML = `<div class="version-timeline">${versions.map(v => `
+      <div class="ver-item ${v.version===activeVer?'active-ver':''}">
+        <div class="ver-header">
+          <span class="ver-num">v${v.version}</span>
+          ${v.version===activeVer?'<span class="badge amber">ACTIVE</span>':''}
+          <span class="ver-ts">${v.createdAt}</span>
+          ${v.version!==activeVer?`<button class="btn" onclick="App.activateVersion(${v.version})">Activate</button>`:''}
+          <button class="btn" onclick="App.viewVersionDetail(${v.version})">View</button>
+        </div>
+        <div class="ver-log">${v.changelog || '—'}</div>
+        <div class="ver-fields">${JR.renderFieldsSummary(v.fields)}</div>
+      </div>`).join('')}
+    </div>`;
+  },
+
+  async activateVersion(v) {
+    const name = App.currentMeta.name;
+    const r = await api('POST', `/schemas/${name}/activate/${v}`);
+    if (!r.ok) { toast('Failed: ' + r.error, 'err'); return; }
+    toast(`v${v} is now active`, 'ok');
+    App.currentMeta = r.data.meta;
+    App.currentVersion = r.data.version;
+    App.currentSchema = r.data.version.fields;
+    App.loadVersions();
+    App.loadData();
+  },
+
+  async viewVersionDetail(v) {
+    const name = App.currentMeta.name;
+    const r = await api('GET', `/schemas/${name}/versions/${v}`);
+    if (!r.ok) { toast('Failed: ' + r.error, 'err'); return; }
+    const ver = r.data;
+    openModal(`VERSION v${v}`, `
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><span class="badge ${ver.version===App.currentMeta.activeVersion?'amber':''}">v${ver.version}</span> &nbsp; ${ver.changelog}</div>
+        <div class="field-label">Created: ${ver.createdAt}</div>
+        <div class="field-label">Fields</div>
+        <pre class="code-block">${JSON.stringify(ver.fields, null, 2)}</pre>
+        <div class="field-label">UI Layout</div>
+        <pre class="code-block">${JSON.stringify(ver.ui, null, 2)}</pre>
+      </div>
+    `, [
+      ver.version !== App.currentMeta.activeVersion
+        ? { label: 'Activate This Version', cls: 'primary', action: `App.activateVersion(${ver.version});App.closeModal()` }
+        : null,
+      { label: 'Close', action: 'App.closeModal()' },
+    ].filter(Boolean));
+  },
+
+  // ── UI Layout editor ──────────────────────────────────────────
+  refreshUILayout() {
+    if (!App.currentVersion) return;
+    const el = document.getElementById('ui-layout-editor');
+    el.value = JSON.stringify(App.currentVersion.ui, null, 2);
+    document.getElementById('ui-layout-error').style.display = 'none';
+  },
+
+  async saveUILayout() {
+    if (!App.currentMeta) return;
+    let ui;
+    try {
+      ui = JSON.parse(document.getElementById('ui-layout-editor').value);
+    } catch(e) {
+      const errEl = document.getElementById('ui-layout-error');
+      errEl.textContent = 'Invalid JSON: ' + e.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    const name = App.currentMeta.name;
+    const changelog = `UI layout updated`;
+    const r = await api('PUT', `/schemas/${name}`, {
+      fields: App.currentSchema,
+      ui,
+      description: App.currentMeta.description,
+      changelog,
+    });
+    if (!r.ok) { toast('Save failed: ' + r.error, 'err'); return; }
+    toast(`UI layout saved as v${r.data.version.version}`, 'ok');
+    App.currentMeta = r.data.meta;
+    App.currentVersion = r.data.version;
+    App.loadSchemaList();
+  },
+
+  // ── Computed field live recalculation ──────────────────────────
+  attachComputedListeners() {
+    const fields = App.currentSchema;
+    if (!fields) return;
+    const hasComputed = Object.values(fields).some(r => r.computed?.expr);
+    if (!hasComputed) return;
+    for (const [key, r] of Object.entries(fields)) {
+      if (r.computed?.expr) continue;
+      const el = document.getElementById('field-' + key);
+      if (el) el.addEventListener('input', () => App.recomputeFields());
+    }
+    App.recomputeFields();
+  },
+
+  recomputeFields() {
+    const fields = App.currentSchema;
+    if (!fields) return;
+    const ctx = {};
+    for (const [key, r] of Object.entries(fields)) {
+      if (r.computed?.expr) continue;
+      const el = document.getElementById('field-' + key);
+      if (!el) continue;
+      let val = el.value;
+      if (r.type === 'number') val = val === '' ? 0 : Number(val);
+      if (r.type === 'boolean') val = el.value === 'true';
+      ctx[key] = val;
+    }
+    for (const [key, r] of Object.entries(fields)) {
+      if (!r.computed?.expr) continue;
+      const el = document.getElementById('field-' + key);
+      if (!el) continue;
+      try {
+        let result = CALC.run(r.computed.expr, ctx);
+        if (r.computed.precision != null && typeof result === 'number') {
+          result = Number(result.toFixed(r.computed.precision));
+        }
+        el.value = result != null ? String(result) : '—';
+      } catch { el.value = 'ERR'; }
+    }
+  },
+
+  async recalculateAll() {
+    if (!App.currentMeta) return;
+    const col = App.currentMeta.name;
+    const btn = document.getElementById('recalc-btn');
+    if (btn) btn.disabled = true;
+    const r = await api('POST', `/api/${col}/recalculate`);
+    if (btn) btn.disabled = false;
+    if (!r.ok) { toast('Recalculate failed: ' + r.error, 'err'); return; }
+    toast(`Recalculated ${r.data.updated} of ${r.data.total} records`, 'ok');
+    App.loadData();
+  },
+
+  closeModal() { document.getElementById('modal-overlay').classList.remove('open'); },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// RELATION UI MODULE
+// ═══════════════════════════════════════════════════════════════════
+
+const RelUI = {
+  mapData: { nodes: [], edges: [] },
+
+  async loadMap() {
+    const r = await api('GET', '/rel/map');
+    if (!r.ok) return;
+    RelUI.mapData = r.data;
+    RelUI.drawGraph(r.data);
+    RelUI.renderRelFields();
+  },
+
+  // ── Canvas graph ───────────────────────────────────────────────
+  drawGraph({ nodes, edges }) {
+    const canvas = document.getElementById('rel-graph');
+    const emptyEl = document.getElementById('rel-graph-empty');
+    if (!nodes.length) { emptyEl.style.display = 'flex'; return; }
+    emptyEl.style.display = 'none';
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth || 900;
+    const H = 260;
+    canvas.width = W; canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+
+    // Layout nodes in a horizontal row with spacing
+    const gap = W / (nodes.length + 1);
+    const positions = {};
+    nodes.forEach((n, i) => { positions[n.id] = { x: gap * (i + 1), y: H / 2 }; });
+
+    const typeColors = { hasOne: '#5588cc', belongsTo: '#7aacee', hasMany: '#4caf6c', manyToMany: '#e8a020' };
+
+    // Draw edges
+    for (const e of edges) {
+      const from = positions[e.from]; const to = positions[e.to];
+      if (!from || !to) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = typeColors[e.type] ?? '#4a4a45';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash(e.type === 'manyToMany' ? [5, 3] : []);
+      // Curved line
+      const mx = (from.x + to.x) / 2;
+      const my = (from.y + to.y) / 2 - 40;
+      ctx.moveTo(from.x, from.y);
+      ctx.quadraticCurveTo(mx, my, to.x, to.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Arrow at target end
+      const dx = to.x - mx; const dy = to.y - my;
+      const angle = Math.atan2(dy, dx);
+      ctx.beginPath();
+      ctx.fillStyle = typeColors[e.type] ?? '#4a4a45';
+      ctx.moveTo(to.x, to.y);
+      ctx.lineTo(to.x - 10 * Math.cos(angle - 0.3), to.y - 10 * Math.sin(angle - 0.3));
+      ctx.lineTo(to.x - 10 * Math.cos(angle + 0.3), to.y - 10 * Math.sin(angle + 0.3));
+      ctx.fill();
+
+      // Edge label
+      ctx.fillStyle = typeColors[e.type] ?? '#808078';
+      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.fillText(`${e.field} (${e.type})`, mx - 20, my - 6);
+    }
+
+    // Draw nodes
+    for (const n of nodes) {
+      const { x, y } = positions[n.id];
+      const isActive = App.currentMeta?.name === n.id;
+      ctx.beginPath();
+      ctx.arc(x, y, 28, 0, Math.PI * 2);
+      ctx.fillStyle = isActive ? 'rgba(232,160,32,0.15)' : 'rgba(30,30,28,0.9)';
+      ctx.fill();
+      ctx.strokeStyle = isActive ? '#e8a020' : '#3a3a36';
+      ctx.lineWidth = isActive ? 2 : 1;
+      ctx.stroke();
+
+      ctx.fillStyle = isActive ? '#e8a020' : '#c8c8c0';
+      ctx.font = `${isActive ? 600 : 400} 11px JetBrains Mono, monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(n.id.length > 10 ? n.id.slice(0, 9) + '…' : n.id, x, y + 4);
+
+      ctx.fillStyle = '#4a4a45';
+      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.fillText(`${n.recordCount} rec`, x, y + 18);
+    }
+  },
+
+  // ── Relation fields list ───────────────────────────────────────
+  renderRelFields() {
+    if (!App.currentSchema) return;
+    const fields = App.currentSchema;
+    const relFields = Object.entries(fields).filter(([, r]) => r.relation);
+    const el = document.getElementById('rel-fields-list');
+
+    if (!relFields.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:11px;padding:8px 0">No relation fields on this schema. Click "+ Add Relation" to define one.</div>';
+      return;
+    }
+
+    el.innerHTML = relFields.map(([key, r]) => {
+      const rel = r.relation;
+      const typeClass = `rel-${rel.type}`;
+      let detail = `<strong>${key}</strong> → <strong>${rel.target}</strong>`;
+      if (rel.targetField) detail += ` · FK: <code>${rel.targetField}</code>`;
+      if (rel.junction)    detail += ` · junction: <code>${rel.junction}</code>`;
+      if (rel.labelField)  detail += ` · label: <code>${rel.labelField}</code>`;
+      return `<div class="rel-field-row">
+        <span class="rel-type-badge ${typeClass}">${rel.type}</span>
+        <span class="rel-arrow">⟶</span>
+        <span class="rel-detail">${detail}</span>
+        <button class="btn" onclick="RelUI.browseRelation('${key}','${rel.type}','${rel.target}')">Browse</button>
+        <button class="btn danger" onclick="RelUI.removeRelation('${key}')">Remove</button>
+      </div>`;
+    }).join('');
+  },
+
+  // ── Browse related records for a field ────────────────────────
+  async browseRelation(fieldKey, relType, targetCol) {
+    document.getElementById('rel-browse-panel').style.display = 'block';
+    const idInput = `<input type="text" id="rel-browse-id" placeholder="Source record ID" style="width:220px">`;
+    document.getElementById('rel-browse-controls').innerHTML = `
+      <div>${idInput}</div>
+      <button class="btn primary" onclick="RelUI.fetchRelated('${fieldKey}')">Fetch Related</button>
+      ${relType === 'manyToMany' ? `
+        <input type="text" id="rel-link-target" placeholder="Target ID to link" style="width:200px">
+        <button class="btn success" onclick="RelUI.linkRecord('${fieldKey}')">Link</button>
+      ` : ''}
+    `;
+    document.getElementById('rel-browse-result').innerHTML = '';
+  },
+
+  async fetchRelated(fieldKey) {
+    const id = document.getElementById('rel-browse-id')?.value.trim();
+    if (!id) { toast('Enter a source record ID', 'err'); return; }
+    const col = App.currentMeta.name;
+    const r = await api('GET', `/rel/${col}/${id}/${fieldKey}`);
+    const el = document.getElementById('rel-browse-result');
+    if (!r.ok) { el.innerHTML = `<div style="color:var(--red);font-size:11px">${r.error}</div>`; return; }
+    const data = r.data;
+    if (!data) { el.innerHTML = '<div style="color:var(--text3);font-size:11px">No related record found</div>'; return; }
+    const items = Array.isArray(data) ? data : [data];
+    el.innerHTML = `<div style="font-size:10px;color:var(--text3);margin-bottom:6px">${items.length} related record(s) — type: ${r.relationType}</div>
+      <pre class="code-block" style="max-height:180px;overflow:auto">${JSON.stringify(items, null, 2)}</pre>`;
+  },
+
+  async linkRecord(fieldKey) {
+    const sourceId = document.getElementById('rel-browse-id')?.value.trim();
+    const targetId = document.getElementById('rel-link-target')?.value.trim();
+    if (!sourceId || !targetId) { toast('Both source ID and target ID required', 'err'); return; }
+    const col = App.currentMeta.name;
+    const r = await api('POST', `/rel/${col}/${sourceId}/${fieldKey}`, { targetId });
+    if (!r.ok) { toast('Link failed: ' + r.error, 'err'); return; }
+    toast(`Linked ${sourceId} ↔ ${targetId}`, 'ok');
+    RelUI.fetchRelated(fieldKey);
+  },
+
+  // ── Add relation modal ─────────────────────────────────────────
+  async openAddRelation() {
+    if (!App.currentMeta) return;
+    const schemas = RelUI.mapData.nodes.map(n => n.id).filter(n => n !== App.currentMeta.name);
+    const schemaOpts = schemas.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    openModal('ADD RELATION FIELD', `
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div class="field-label">Field Name (FK field on this schema)</div>
+          <input type="text" id="rel-field-name" placeholder="e.g. userId, orderId, categoryIds">
+          <div class="jf-hint">For hasMany/manyToMany this is a logical name — no FK stored here</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <div class="field-label">Relation Type</div>
+            <select id="rel-type-sel" onchange="RelUI.onRelTypeChange()">
+              <option value="hasOne">hasOne — I own one record in target (FK here)</option>
+              <option value="belongsTo">belongsTo — I am owned by one target (FK here)</option>
+              <option value="hasMany">hasMany — target records point back to me</option>
+              <option value="manyToMany">manyToMany — junction table</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-label">Target Collection</div>
+            <select id="rel-target-sel">${schemaOpts || '<option value="">— no other schemas —</option>'}</select>
+          </div>
+        </div>
+        <div id="rel-extra-fields">
+          <div class="field-label">Target Field (FK field name on target, for hasMany)</div>
+          <input type="text" id="rel-target-field" placeholder="e.g. userId">
+        </div>
+        <div>
+          <div class="field-label">Label Field (optional — which field to show as display name)</div>
+          <input type="text" id="rel-label-field" placeholder="e.g. name, title, email">
+        </div>
+        <div id="rel-junction-row" style="display:none">
+          <div class="field-label">Junction Name (leave blank for auto: sourceCol_targetCol)</div>
+          <input type="text" id="rel-junction-name" placeholder="e.g. user_roles">
+        </div>
+      </div>
+    `, [
+      { label: '✓ Add Field', cls: 'primary', action: 'RelUI.confirmAddRelation()' },
+      { label: 'Cancel', action: 'App.closeModal()' },
+    ]);
+  },
+
+  onRelTypeChange() {
+    const type = document.getElementById('rel-type-sel')?.value;
+    const juncRow = document.getElementById('rel-junction-row');
+    const extraFields = document.getElementById('rel-extra-fields');
+    if (juncRow) juncRow.style.display = type === 'manyToMany' ? 'block' : 'none';
+    if (extraFields) {
+      const label = extraFields.querySelector('.field-label');
+      if (label) label.textContent = type === 'hasMany'
+        ? 'Target Field (FK field name on target records)'
+        : 'Target Field (not needed for hasOne/belongsTo/manyToMany)';
+    }
+  },
+
+  async confirmAddRelation() {
+    const fieldName  = document.getElementById('rel-field-name')?.value.trim();
+    const relType    = document.getElementById('rel-type-sel')?.value;
+    const target     = document.getElementById('rel-target-sel')?.value;
+    const targetField = document.getElementById('rel-target-field')?.value.trim();
+    const labelField = document.getElementById('rel-label-field')?.value.trim();
+    const junction   = document.getElementById('rel-junction-name')?.value.trim();
+
+    if (!fieldName) { toast('Field name required', 'err'); return; }
+    if (!target)    { toast('Target collection required', 'err'); return; }
+    if (relType === 'hasMany' && !targetField) { toast('targetField required for hasMany', 'err'); return; }
+
+    // Build the new field definition
+    const newField = {
+      type: 'string',
+      relation: {
+        type: relType,
+        target,
+        ...(targetField ? { targetField } : {}),
+        ...(labelField  ? { labelField  } : {}),
+        ...(relType === 'manyToMany' && junction ? { junction } : {}),
+      },
+    };
+
+    // Merge into current schema fields
+    const updatedFields = { ...App.currentSchema, [fieldName]: newField };
+    const changelog = `Added ${relType} relation field "${fieldName}" → ${target}`;
+
+    const r = await api('PUT', `/schemas/${App.currentMeta.name}`, {
+      fields: updatedFields,
+      description: App.currentMeta.description,
+      changelog,
+    });
+
+    if (!r.ok) { toast('Save failed: ' + r.error, 'err'); return; }
+    toast(`Relation "${fieldName}" added as v${r.data.version.version}`, 'ok');
+    App.currentMeta = r.data.meta;
+    App.currentVersion = r.data.version;
+    App.currentSchema = r.data.version.fields;
+    App.closeModal();
+    App.loadSchemaList();
+    App.buildFieldsEditor();
+    RelUI.loadMap();
+  },
+
+  async removeRelation(fieldKey) {
+    if (!confirm(`Remove relation field "${fieldKey}" from schema? This creates a new version.`)) return;
+    const updatedFields = { ...App.currentSchema };
+    delete updatedFields[fieldKey];
+    const r = await api('PUT', `/schemas/${App.currentMeta.name}`, {
+      fields: updatedFields,
+      description: App.currentMeta.description,
+      changelog: `Removed relation field "${fieldKey}"`,
+    });
+    if (!r.ok) { toast('Failed: ' + r.error, 'err'); return; }
+    toast(`Removed "${fieldKey}"`, 'ok');
+    App.currentMeta = r.data.meta;
+    App.currentVersion = r.data.version;
+    App.currentSchema = r.data.version.fields;
+    App.loadSchemaList();
+    App.buildFieldsEditor();
+    RelUI.loadMap();
+  },
+};
+
+// Patch JR to support relation widget (FK selector populated from target collection)
+const _origRenderWidget = JR.renderWidget.bind(JR);
+JR.renderWidget = function(key, ff, rules, val, disabled) {
+  if (rules.relation && (rules.relation.type === 'hasOne' || rules.relation.type === 'belongsTo')) {
+    const rel = rules.relation;
+    const dis = disabled ? 'disabled' : '';
+    return `<div style="display:flex;gap:8px;align-items:center">
+      <input type="text" id="field-${key}" value="${val ?? ''}" placeholder="ID of ${rel.target} record" ${dis} style="flex:1">
+      <button class="btn" onclick="RelUI.openRelPicker('${key}','${rel.target}','${rel.labelField ?? 'id'}')" type="button" ${dis}>Browse</button>
+    </div>`;
+  }
+  if (rules.relation && rules.relation.type === 'manyToMany') {
+    return `<div style="color:var(--text3);font-size:11px;padding:6px">Managed via Relations tab — many-to-many links are set with the Link button there.</div>
+      <input type="hidden" id="field-${key}" value="">`;
+  }
+  return _origRenderWidget(key, ff, rules, val, disabled);
+};
+
+RelUI.openRelPicker = async function(fieldKey, targetCol, labelField) {
+  const r = await api('GET', `/api/${targetCol}?limit=50`);
+  if (!r.ok) { toast('Cannot load ' + targetCol, 'err'); return; }
+  const items = r.data;
+  openModal(`PICK ${targetCol.toUpperCase()}`, `
+    <input class="search-box" style="width:100%;margin-bottom:10px" placeholder="Search…" oninput="RelUI.filterPicker(this.value)" id="picker-search">
+    <div id="picker-list" style="max-height:320px;overflow-y:auto">
+      ${items.map(it => `
+        <div class="rel-field-row" style="cursor:pointer" onclick="RelUI.pickItem('${fieldKey}','${it.id}','${String(it[labelField] ?? it.id).replace(/'/g,"\\'")}')">
+          <span style="color:var(--amber);font-size:11px;width:180px;overflow:hidden;text-overflow:ellipsis">${it.id}</span>
+          <span style="color:var(--text2);font-size:12px">${it[labelField] ?? '—'}</span>
+        </div>`).join('')}
+    </div>
+  `, [{ label: 'Cancel', action: 'App.closeModal()' }]);
+  RelUI._pickerItems = items;
+  RelUI._pickerField = fieldKey;
+  RelUI._pickerLabelField = labelField;
+};
+
+RelUI.filterPicker = function(q) {
+  const items = RelUI._pickerItems ?? [];
+  const lf = RelUI._pickerLabelField ?? 'id';
+  const filtered = q ? items.filter(it => JSON.stringify(it).toLowerCase().includes(q.toLowerCase())) : items;
+  document.getElementById('picker-list').innerHTML = filtered.map(it =>
+    `<div class="rel-field-row" style="cursor:pointer" onclick="RelUI.pickItem('${RelUI._pickerField}','${it.id}','${String(it[lf] ?? it.id).replace(/'/g,"\\'")}')">
+      <span style="color:var(--amber);font-size:11px;width:180px">${it.id}</span>
+      <span style="color:var(--text2);font-size:12px">${it[lf] ?? '—'}</span>
+    </div>`
+  ).join('');
+};
+
+RelUI.pickItem = function(fieldKey, id, label) {
+  const input = document.getElementById('field-' + fieldKey);
+  if (input) input.value = id;
+  App.closeModal();
+  toast(`Selected: ${label} (${id})`, 'ok');
+};
+
+
+
+const Backup = {
+  pendingFile: null,
+  pendingSchemaFile: null,
+
+  // ── Export ──────────────────────────────────────────────────────
+
+  async exportJSON() {
+    if (!App.currentMeta) return toast('No schema selected', 'err');
+    const col = App.currentMeta.name;
+    toast(`Exporting ${col} as JSON…`, 'info');
+    try {
+      const res = await fetch(`${App.base}/export/${col}?format=json`);
+      if (!res.ok) { const j = await res.json(); toast('Export failed: ' + j.error, 'err'); return; }
+      const blob = await res.blob();
+      const cd = res.headers.get('Content-Disposition') ?? '';
+      const fname = cd.match(/filename="([^"]+)"/)?.[1] ?? `${col}_export.json`;
+      Backup.downloadBlob(blob, fname);
+      const total = res.headers.get('X-Export-Total') ?? '?';
+      toast(`Exported ${total} records`, 'ok');
+    } catch(e) { toast('Export error: ' + e.message, 'err'); }
+  },
+
+  async exportCSV() {
+    if (!App.currentMeta) return toast('No schema selected', 'err');
+    const col = App.currentMeta.name;
+    toast(`Exporting ${col} as CSV…`, 'info');
+    try {
+      const res = await fetch(`${App.base}/export/${col}?format=csv`);
+      if (!res.ok) { const j = await res.json(); toast('Export failed: ' + j.error, 'err'); return; }
+      const blob = await res.blob();
+      const cd = res.headers.get('Content-Disposition') ?? '';
+      const fname = cd.match(/filename="([^"]+)"/)?.[1] ?? `${col}_export.csv`;
+      Backup.downloadBlob(blob, fname);
+      const total = res.headers.get('X-Export-Total') ?? '?';
+      toast(`Exported ${total} records`, 'ok');
+    } catch(e) { toast('Export error: ' + e.message, 'err'); }
+  },
+
+  async exportSchemas() {
+    toast('Exporting schema registry…', 'info');
+    try {
+      const res = await fetch(`${App.base}/export/schemas`);
+      if (!res.ok) { const j = await res.json(); toast('Export failed: ' + j.error, 'err'); return; }
+      const blob = await res.blob();
+      const cd = res.headers.get('Content-Disposition') ?? '';
+      const fname = cd.match(/filename="([^"]+)"/)?.[1] ?? 'schemas_backup.json';
+      Backup.downloadBlob(blob, fname);
+      toast('Schema registry exported', 'ok');
+    } catch(e) { toast('Export error: ' + e.message, 'err'); }
+  },
+
+  downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  },
+
+  // ── Drag + Drop ─────────────────────────────────────────────────
+
+  dragOver(e)  { e.preventDefault(); e.currentTarget.classList.add('drag-over'); },
+  dragLeave(e) { e.currentTarget.classList.remove('drag-over'); },
+
+  drop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) Backup.loadDataFile(file);
+  },
+
+  schemaDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) Backup.loadSchemaFile(file);
+  },
+
+  fileSelected(e)       { if (e.target.files[0]) Backup.loadDataFile(e.target.files[0]); },
+  schemaFileSelected(e) { if (e.target.files[0]) Backup.loadSchemaFile(e.target.files[0]); },
+
+  // ── Load + preview data file ────────────────────────────────────
+
+  loadDataFile(file) {
+    Backup.pendingFile = file;
+    const isCSV = file.name.endsWith('.csv');
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      let preview = '';
+      let recordCount = '?';
+      let detectedCollection = '—';
+      let detectedVersion = '—';
+      let warning = '';
+
+      if (isCSV) {
+        const lines = text.split('\n').filter(l => l.trim());
+        const headerLine = lines.find(l => l.startsWith('# SCHEMATA-EXPORT'));
+        if (!headerLine) {
+          warning = '⚠ Missing SCHEMATA-EXPORT header. Import will be rejected.';
+        } else {
+          const meta = {};
+          headerLine.replace('# SCHEMATA-EXPORT ', '').split(' ').forEach(p => {
+            const [k,v] = p.split('='); if(k&&v) meta[k]=v;
+          });
+          detectedCollection = meta.collection ?? '—';
+          detectedVersion = meta.schemaVersion ? `v${meta.schemaVersion}` : '—';
+        }
+        recordCount = lines.filter(l => !l.startsWith('#') && l.trim() && lines.indexOf(l) > 0).length - 1;
+        preview = lines.slice(0, 5).join('\n');
+      } else {
+        try {
+          const json = JSON.parse(text);
+          if (Array.isArray(json)) {
+            recordCount = json.length;
+            preview = JSON.stringify(json.slice(0,2), null, 2);
+          } else if (json.data) {
+            recordCount = json.data.length;
+            detectedCollection = json.meta?.collection ?? '—';
+            detectedVersion = json.meta?.schemaVersion ? `v${json.meta.schemaVersion}` : '—';
+            preview = JSON.stringify(json.data.slice(0,2), null, 2);
+          }
+        } catch { warning = '⚠ Invalid JSON file.'; }
+      }
+
+      const colMatch = App.currentMeta && detectedCollection !== '—'
+        ? (detectedCollection === App.currentMeta.name
+            ? '<span style="color:var(--green)">✓ collection matches</span>'
+            : `<span style="color:var(--red)">⚠ file is for "${detectedCollection}", current is "${App.currentMeta.name}"</span>`)
+        : '';
+
+      document.getElementById('import-file-info').style.display = 'block';
+      document.getElementById('import-file-info').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
+          <div><span style="color:var(--text3)">File:</span> ${file.name}</div>
+          <div><span style="color:var(--text3)">Records:</span> <span style="color:var(--amber)">${recordCount}</span></div>
+          <div><span style="color:var(--text3)">Schema ver:</span> ${detectedVersion}</div>
+          <div><span style="color:var(--text3)">Collection:</span> ${detectedCollection} ${colMatch}</div>
+          <div><span style="color:var(--text3)">Format:</span> ${isCSV ? 'CSV' : 'JSON'}</div>
+        </div>
+        ${warning ? `<div style="color:var(--red);margin-bottom:8px">${warning}</div>` : ''}
+        <div style="color:var(--text3);font-size:10px;margin-bottom:4px">Preview (first rows):</div>
+        <pre style="font-size:10px;color:var(--text2);overflow:auto;max-height:120px">${preview}</pre>
+      `;
+      document.getElementById('import-btn').disabled = !!warning;
+      document.getElementById('import-clear-btn').style.display = 'inline-block';
+    };
+    reader.readAsText(file);
+  },
+
+  clearFile() {
+    Backup.pendingFile = null;
+    document.getElementById('import-file-info').style.display = 'none';
+    document.getElementById('import-result').style.display = 'none';
+    document.getElementById('import-btn').disabled = true;
+    document.getElementById('import-clear-btn').style.display = 'none';
+    document.getElementById('file-input').value = '';
+  },
+
+  // ── Run data import ─────────────────────────────────────────────
+
+  async runImport() {
+    if (!Backup.pendingFile || !App.currentMeta) return;
+    const col = App.currentMeta.name;
+    const mode = document.getElementById('import-mode').value;
+    const isCSV = Backup.pendingFile.name.endsWith('.csv');
+    const ct = isCSV ? 'text/csv' : 'application/json';
+    const text = await Backup.pendingFile.text();
+
+    document.getElementById('import-btn').disabled = true;
+    document.getElementById('import-btn').textContent = '⏳ Importing…';
+    toast('Importing…', 'info');
+
+    try {
+      const res = await fetch(`${App.base}/import/${col}?mode=${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': ct },
+        body: text,
+      });
+      const data = await res.json();
+
+      const el = document.getElementById('import-result');
+      el.style.display = 'block';
+
+      if (!data.ok) {
+        el.innerHTML = `<div style="color:var(--red);padding:10px;background:var(--red-bg);border:1px solid var(--red)">
+          <strong>Import failed:</strong> ${data.error}
+          ${data.details ? '<pre style="margin-top:6px;font-size:10px">' + data.details.join('\n') + '</pre>' : ''}
+        </div>`;
+        toast('Import failed', 'err');
+      } else {
+        const r = data.data;
+        el.innerHTML = `
+          <div style="padding:12px;background:var(--green-bg);border:1px solid var(--green)">
+            <div style="color:var(--green);margin-bottom:8px">✓ Import complete</div>
+            <div class="import-result-row"><span style="color:var(--text3)">Mode:</span> <span class="badge ${mode==='replace'?'red':'green'}">${mode}</span></div>
+            <div class="import-result-row"><span style="color:var(--text3)">Imported:</span> <span style="color:var(--green)">${r.imported}</span></div>
+            <div class="import-result-row"><span style="color:var(--text3)">Skipped:</span> <span style="color:var(--amber)">${r.skipped}</span></div>
+            ${r.errors?.length ? `<div class="import-result-row" style="flex-direction:column;align-items:flex-start">
+              <span style="color:var(--red);margin-bottom:4px">Errors:</span>
+              <pre style="font-size:10px;color:var(--text2)">${r.errors.map(e=>JSON.stringify(e)).join('\n')}</pre>
+            </div>` : ''}
+          </div>`;
+        toast(`Imported ${r.imported} records`, 'ok');
+        App.loadData();
+      }
+    } catch(e) {
+      toast('Network error: ' + e.message, 'err');
+    }
+    document.getElementById('import-btn').disabled = false;
+    document.getElementById('import-btn').textContent = '▲ Import';
+  },
+
+  // ── Schema file ─────────────────────────────────────────────────
+
+  loadSchemaFile(file) {
+    Backup.pendingSchemaFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      let preview = ''; let schemaCount = '?'; let warning = '';
+      try {
+        const json = JSON.parse(e.target.result);
+        if (json.meta?.type !== 'schemata-schema-backup') {
+          warning = '⚠ File does not have "schemata-schema-backup" type. Import will be rejected.';
+        }
+        schemaCount = json.schemas?.length ?? '?';
+        preview = json.schemas?.slice(0,3).map(s => `${s.meta?.name} (${s.versions?.length} versions)`).join('\n') ?? '';
+      } catch { warning = '⚠ Invalid JSON file.'; }
+
+      document.getElementById('schema-import-file-info').style.display = 'block';
+      document.getElementById('schema-import-file-info').innerHTML = `
+        <div style="margin-bottom:8px"><span style="color:var(--text3)">File:</span> ${file.name} · <span style="color:var(--amber)">${schemaCount} schemas</span></div>
+        ${warning ? `<div style="color:var(--red);margin-bottom:6px">${warning}</div>` : ''}
+        <pre style="font-size:10px;color:var(--text2)">${preview}</pre>
+      `;
+      document.getElementById('schema-import-btn').disabled = !!warning;
+      document.getElementById('schema-clear-btn').style.display = 'inline-block';
+    };
+    reader.readAsText(file);
+  },
+
+  clearSchemaFile() {
+    Backup.pendingSchemaFile = null;
+    document.getElementById('schema-import-file-info').style.display = 'none';
+    document.getElementById('schema-import-result').style.display = 'none';
+    document.getElementById('schema-import-btn').disabled = true;
+    document.getElementById('schema-clear-btn').style.display = 'none';
+    document.getElementById('schema-file-input').value = '';
+  },
+
+  async runSchemaImport() {
+    if (!Backup.pendingSchemaFile) return;
+    const text = await Backup.pendingSchemaFile.text();
+    document.getElementById('schema-import-btn').disabled = true;
+    document.getElementById('schema-import-btn').textContent = '⏳ Restoring…';
+    toast('Restoring schemas…', 'info');
+
+    try {
+      const res = await fetch(`${App.base}/import/schemas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: text,
+      });
+      const data = await res.json();
+      const el = document.getElementById('schema-import-result');
+      el.style.display = 'block';
+
+      if (!data.ok) {
+        el.innerHTML = `<div style="color:var(--red);padding:10px;background:var(--red-bg);border:1px solid var(--red)"><strong>Restore failed:</strong> ${data.error}</div>`;
+        toast('Restore failed', 'err');
+      } else {
+        const r = data.data;
+        el.innerHTML = `
+          <div style="padding:12px;background:var(--green-bg);border:1px solid var(--green)">
+            <div style="color:var(--green);margin-bottom:8px">✓ Schema restore complete</div>
+            <div class="import-result-row"><span style="color:var(--text3)">Restored:</span> <span style="color:var(--green)">${r.restored} schemas</span></div>
+            <div class="import-result-row"><span style="color:var(--text3)">Skipped:</span> <span style="color:var(--amber)">${r.skipped}</span></div>
+            ${r.errors?.length ? `<pre style="font-size:10px;color:var(--red);margin-top:6px">${r.errors.join('\n')}</pre>` : ''}
+          </div>`;
+        toast(`Restored ${r.restored} schemas`, 'ok');
+        await App.loadSchemaList();
+      }
+    } catch(e) { toast('Error: ' + e.message, 'err'); }
+
+    document.getElementById('schema-import-btn').disabled = false;
+    document.getElementById('schema-import-btn').textContent = '▲ Restore Schemas';
+  },
+
+  // ── Update backup tab labels when schema changes ────────────────
+  updateLabels() {
+    const name = App.currentMeta?.name ?? '—';
+    const el1 = document.getElementById('export-col-name');
+    const el2 = document.getElementById('import-col-name');
+    if (el1) el1.textContent = name;
+    if (el2) el2.textContent = name;
+  },
+};
+
+
+
+async function api(method, path, body) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(App.base + path, opts);
+    return r.json();
+  } catch(e) { return { ok: false, error: e.message }; }
+}
+
+function toast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  el.textContent = msg;
+  t.appendChild(el);
+  setTimeout(() => el.style.opacity = '0', 2800);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function setDot(state) {
+  const d = document.getElementById('status-dot');
+  d.className = state;
+  d.title = state === 'ok' ? 'Connected' : 'Connection error';
+}
+
+function openModal(title, body, buttons = []) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-footer').innerHTML = buttons.map(b =>
+    `<button class="btn ${b.cls||''}" onclick="${b.action}">${b.label}</button>`
+  ).join('');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `tab-${name}`));
+  if (name === 'versions')  App.loadVersions();
+  if (name === 'ui-layout') App.refreshUILayout();
+  if (name === 'relations') RelUI.loadMap();
+}
+
+// Tab clicks
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) App.closeModal();
+});
+
+// Expose to onclick handlers
+window.JR     = JR;
+window.App    = App;
+window.Backup = Backup;
+window.RelUI  = RelUI;
+
+// Auto-connect on load
+(function() {
+  const saved = localStorage.getItem('worker_url');
+  const urlEl = document.getElementById('api-url-input');
+  if (saved) {
+    urlEl.value = saved;
+  } else {
+    urlEl.value = location.origin;
+  }
+  App.connect();
+})();
+</script>
+</body>
+</html>

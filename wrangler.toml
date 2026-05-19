@@ -1,0 +1,10 @@
+name = "schema-crud-worker"
+main = "dist/worker.js"
+compatibility_date = "2024-09-23"
+[build]
+command = "node build.js"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "b9724e60e3c24ab09b6404aa50d6cc80"
+# preview_id = "b9724e60e3c24ab09b6404aa50d6cc80"
