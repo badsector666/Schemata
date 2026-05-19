@@ -7,7 +7,6 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; }
-a { color:#38bdf8; }
 
 /* Header */
 .header { background:#1e293b; border-bottom:1px solid #334155; padding:12px 20px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:50; }
@@ -55,33 +54,29 @@ a { color:#38bdf8; }
 .form-group input, .form-group select { background:#0f172a; border:1px solid #475569; border-radius:6px; padding:8px 12px; color:#e2e8f0; font-size:14px; }
 .form-group input:focus, .form-group select:focus { outline:none; border-color:#3b82f6; }
 
-/* Diameter Grid */
-.grid-controls { display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
-.grid-controls label { font-size:13px; color:#94a3b8; }
-.grid-controls input { width:60px; background:#0f172a; border:1px solid #475569; border-radius:4px; padding:4px 8px; color:#e2e8f0; font-size:13px; text-align:center; }
-
-.diameter-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap:6px; }
-.dia-cell { display:flex; flex-direction:column; align-items:center; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:6px 4px; transition:border-color .15s; }
-.dia-cell:hover { border-color:#475569; }
-.dia-cell.has-value { border-color:#3b82f6; background:#1e3a5f; }
-.dia-label { font-size:11px; color:#64748b; font-weight:700; margin-bottom:4px; }
-.dia-input { width:100%; background:transparent; border:none; color:#f8fafc; font-size:16px; text-align:center; padding:4px 0; outline:none; font-weight:600; }
-.dia-input::placeholder { color:#334155; }
-
-/* Log type rows */
+/* Log type section */
 .log-type-section { margin-bottom:16px; border:1px solid #334155; border-radius:8px; overflow:hidden; }
-.log-type-header { background:#1e293b; padding:10px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; }
-.log-type-header .name { font-weight:700; font-size:14px; }
-.log-type-header .meta { font-size:12px; color:#64748b; }
+.log-type-header { background:#1e293b; padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.log-type-header input[type=text],
+.log-type-header input[type=number] { outline:none; }
+.log-type-header .meta { font-size:12px; color:#64748b; display:flex; align-items:center; gap:4px; }
 .log-type-header .actions { margin-left:auto; display:flex; gap:8px; }
-.log-type-header .actions button { background:transparent; border:1px solid #475569; color:#94a3b8; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px; }
-.log-type-header .actions button:hover { background:#334155; color:#e2e8f0; }
-.log-type-header .actions .btn-remove { border-color:#7f1d1d; color:#fca5a5; }
-.log-type-header .actions .btn-remove:hover { background:#7f1d1d; color:#fff; }
-.log-type-body { padding:12px 16px; }
+.log-type-header .actions button { background:transparent; border:1px solid #7f1d1d; color:#fca5a5; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px; }
+.log-type-header .actions button:hover { background:#7f1d1d; color:#fff; }
+.log-type-body { padding:12px 8px; overflow-x:auto; }
+
+/* Diameter table — row-based */
+.dia-table { width:100%; border-collapse:collapse; }
+.dia-table th { background:#0f172a; color:#64748b; font-size:11px; font-weight:700; padding:4px 2px; text-align:center; border:1px solid #1e293b; min-width:50px; }
+.dia-table td { text-align:center; padding:0; border:1px solid #1e293b; position:relative; }
+.dia-table tr.has-value td { background:#1e3a5f; }
+.dia-table td input { width:100%; background:transparent; border:none; color:#f8fafc; font-size:15px; text-align:center; padding:6px 2px; outline:none; font-weight:600; }
+.dia-table td input::placeholder { color:#334155; font-size:12px; }
+.dia-table td input:focus { background:#1e3a5f; }
+.dia-table th.row-label { color:#94a3b8; font-size:10px; }
 
 /* Totals */
-.totals-bar { display:flex; gap:16px; flex-wrap:wrap; padding:12px 16px; background:#1e293b; border-top:1px solid #334155; border-radius:0 0 8px 8px; }
+.totals-bar { display:flex; gap:16px; flex-wrap:wrap; padding:10px 16px; background:#1e293b; border-top:1px solid #334155; }
 .total-item { font-size:13px; color:#94a3b8; }
 .total-item strong { color:#f8fafc; }
 
@@ -111,7 +106,7 @@ a { color:#38bdf8; }
 .toast.err { background:#ef4444; color:#fff; }
 .toast.info { background:#3b82f6; color:#fff; }
 
-/* Volume formula info */
+/* Formula info */
 .formula-info { font-size:12px; color:#64748b; padding:8px 0; }
 .formula-info code { background:#0f172a; padding:2px 6px; border-radius:3px; color:#38bdf8; }
 
@@ -120,7 +115,6 @@ a { color:#38bdf8; }
   .header { flex-wrap:wrap; }
   .header .url-group { width:100%; }
   .header input[type=text] { width:100%; }
-  .diameter-grid { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); }
 }
 </style>
 </head>
@@ -136,7 +130,7 @@ a { color:#38bdf8; }
 </div>
 
 <div class="container">
-  <!-- Setup banner — shown when schemas don't exist -->
+  <!-- Setup banner -->
   <div class="setup-banner" id="setup-banner" style="display:none">
     <h2>Setup Required</h2>
     <p>Create the required schemas (tally_headers, tally_items, suppliers, graders, locations) in your Schemata worker?</p>
@@ -152,7 +146,6 @@ a { color:#38bdf8; }
 
   <!-- Tally Tab -->
   <div class="panel active" id="tab-tally">
-
     <!-- Header info -->
     <div class="card">
       <h3>Tally Session</h3>
@@ -193,7 +186,7 @@ a { color:#38bdf8; }
     </div>
 
     <div class="formula-info">
-      Volume formula: <code>0.7854 * (diameter/100)^2 * length</code> (m3, cylindrical) — configured via Schemata computed field
+      Volume = <code>cons * diameter^2 * length / 100000</code> (m3) — computed via Schemata. Cons default 0.7854.
     </div>
   </div>
 
@@ -202,11 +195,7 @@ a { color:#38bdf8; }
     <div class="card">
       <h3>Tally History</h3>
       <table class="history-table">
-        <thead>
-          <tr>
-            <th>ID</th><th>Date</th><th>Supplier</th><th>Location</th><th>Items</th><th>Total Vol</th><th>Actions</th>
-          </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Date</th><th>Supplier</th><th>Location</th><th>Items</th><th>Total Vol</th><th>Actions</th></tr></thead>
         <tbody id="history-body"></tbody>
       </table>
     </div>
@@ -216,12 +205,10 @@ a { color:#38bdf8; }
   <div class="panel" id="tab-refs">
     <div class="card">
       <h3>Reference Data</h3>
-      <p style="font-size:13px;color:#94a3b8;margin-bottom:12px;">Manage suppliers, graders, and locations. These are stored as Schemata collections.</p>
-
+      <p style="font-size:13px;color:#94a3b8;margin-bottom:12px;">Manage suppliers, graders, and locations.</p>
       <div id="refs-content"></div>
     </div>
   </div>
-
 </div>
 
 <!-- Toast -->
@@ -244,17 +231,23 @@ function setDot(state) {
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
+// Volume calc: cons * dia^2 * length / 100000
+// With cons=0.7854, dia=15, length=130: 0.7854 * 225 * 130 / 100000 = 0.2297295
+function calcVolume(cons, dia, length) {
+  return cons * dia * dia * length / 100000;
+}
+
 // ── App ──────────────────────────────────────────────────────────
 const App = {
   base: '',
   connected: false,
   schemasReady: false,
 
-  // Current tally state
   currentTallyId: null,
   logTypeRows: [],
   diaMin: 8,
   diaMax: 80,
+  colsPerRow: 4,  // diameters per row in the table
 
   // ── Connection ──────────────────────────────────────────────
   async connect() {
@@ -272,7 +265,6 @@ const App = {
       const data = await r.json();
       const names = (data.data || []).map(s => s.name || s);
 
-      // Check required schemas
       const required = ['tally_headers', 'tally_items', 'suppliers', 'graders', 'locations'];
       const missing = required.filter(n => !names.includes(n));
 
@@ -301,50 +293,26 @@ const App = {
   async setup() {
     const url = App.base;
     const schemas = [
-      {
-        name: 'suppliers',
-        fields: {
-          name:     { type:'string', required:true },
-          code:     { type:'string' },
-          contact:  { type:'string' },
-        }
-      },
-      {
-        name: 'graders',
-        fields: {
-          name:   { type:'string', required:true },
-          code:   { type:'string' },
-        }
-      },
-      {
-        name: 'locations',
-        fields: {
-          name:   { type:'string', required:true },
-          code:   { type:'string' },
-        }
-      },
-      {
-        name: 'tally_headers',
-        fields: {
-          date:        { type:'string', required:true },
-          supplier_id: { type:'string', required:true },
-          grader_id:   { type:'string', required:true },
-          location_id: { type:'string', required:true },
-          notes:       { type:'string' },
-        }
-      },
-      {
-        name: 'tally_items',
-        fields: {
-          tally_id:  { type:'string', required:true },
-          log_type:  { type:'string', required:true },
-          length:    { type:'number', required:true },
-          quality:   { type:'string' },
-          diameter:  { type:'number', required:true },
-          quantity:  { type:'number', required:true },
-          volume:    { type:'number', computed: { expr: '0.7854 * (diameter / 100) ** 2 * length * quantity', precision: 4 } },
-        }
-      }
+      { name: 'suppliers', fields: { name: { type:'string', required:true }, code: { type:'string' }, contact: { type:'string' } } },
+      { name: 'graders', fields: { name: { type:'string', required:true }, code: { type:'string' } } },
+      { name: 'locations', fields: { name: { type:'string', required:true }, code: { type:'string' } } },
+      { name: 'tally_headers', fields: {
+        date: { type:'string', required:true },
+        supplier_id: { type:'string', required:true },
+        grader_id: { type:'string', required:true },
+        location_id: { type:'string', required:true },
+        notes: { type:'string' },
+      }},
+      { name: 'tally_items', fields: {
+        tally_id: { type:'string', required:true },
+        log_type: { type:'string', required:true },
+        length: { type:'number', required:true },
+        quality: { type:'string' },
+        cons: { type:'number' },
+        diameter: { type:'number', required:true },
+        quantity: { type:'number', required:true },
+        volume: { type:'number', computed: { expr: 'cons * diameter * diameter * length / 100000 * quantity', precision: 4 } },
+      }}
     ];
 
     try {
@@ -356,7 +324,6 @@ const App = {
         });
         if (!r.ok) {
           const err = await r.json();
-          // If already exists, skip
           if (!err.error?.includes('already exists')) {
             throw new Error(`Failed to create ${schema.name}: ${err.error || r.status}`);
           }
@@ -387,16 +354,11 @@ const App = {
       const d = await r.json();
       return d.data || [];
     };
-
-    const [suppliers, graders, locations] = await Promise.all([
-      load('suppliers'), load('graders'), load('locations')
-    ]);
-
+    const [suppliers, graders, locations] = await Promise.all([load('suppliers'), load('graders'), load('locations')]);
     App.suppliers = suppliers;
     App.graders = graders;
     App.locations = locations;
 
-    // Populate selects
     const fill = (id, items) => {
       const el = document.getElementById(id);
       el.innerHTML = '<option value="">-- Select --</option>' +
@@ -410,9 +372,7 @@ const App = {
   // ── Init tally ──────────────────────────────────────────────
   initTally() {
     document.getElementById('tally-date').value = new Date().toISOString().slice(0,10);
-    if (App.logTypeRows.length === 0) {
-      App.addLogTypeRow();
-    }
+    if (App.logTypeRows.length === 0) App.addLogTypeRow();
   },
 
   // ── Log type rows ───────────────────────────────────────────
@@ -421,8 +381,9 @@ const App = {
       id: uid(),
       logType: data?.logType || '',
       length: data?.length || '',
-      quality: data?.quality || 'A',
-      diameters: data?.diameters || {},  // { 12: 3, 25: 1, ... }
+      quality: data?.quality || 'Super',
+      cons: data?.cons ?? 0.7854,
+      diameters: data?.diameters || {},
     };
     App.logTypeRows.push(row);
     App.renderLogTypes();
@@ -436,66 +397,95 @@ const App = {
 
   renderLogTypes() {
     const container = document.getElementById('log-types-container');
+    const C = App.colsPerRow;
+
     container.innerHTML = App.logTypeRows.map(row => {
-      // Calculate totals
-      let totalQty = 0, totalVol = 0;
+      // Totals
+      let totalQty = 0, totalVol = 0, count = 0;
+      const cons = parseFloat(row.cons) || 0.7854;
+      const len = parseFloat(row.length) || 0;
       for (let d = App.diaMin; d <= App.diaMax; d++) {
         const q = row.diameters[d] || 0;
-        if (q > 0) {
-          totalQty += q;
-          const len = parseFloat(row.length) || 0;
-          totalVol += 0.7854 * Math.pow(d / 100, 2) * len * q;
-        }
+        if (q > 0) { totalQty += q; totalVol += calcVolume(cons, d, len) * q; count++; }
       }
 
-      // Build diameter cells
-      let cells = '';
-      for (let d = App.diaMin; d <= App.diaMax; d++) {
-        const val = row.diameters[d] || '';
-        const hasVal = val ? 'has-value' : '';
-        cells += `<div class="dia-cell ${hasVal}">
-          <span class="dia-label">${d}</span>
-          <input type="number" class="dia-input" min="0" step="1" placeholder="0"
-            data-row="${row.id}" data-dia="${d}"
+      // Build table: each row has C diameter columns
+      const allDias = [];
+      for (let d = App.diaMin; d <= App.diaMax; d++) allDias.push(d);
+
+      let tableHtml = '<table class="dia-table"><thead><tr>';
+      for (let c = 0; c < C; c++) tableHtml += '<th>Dia</th><th>Qty</th>';
+      tableHtml += '</tr></thead><tbody>';
+
+      for (let i = 0; i < allDias.length; i += C) {
+        tableHtml += '<tr>';
+        for (let c = 0; c < C; c++) {
+          const idx = i + c;
+          if (idx >= allDias.length) {
+            tableHtml += '<td style="background:#0f172a"></td><td style="background:#0f172a"></td>';
+            continue;
+          }
+          const dia = allDias[idx];
+          const val = row.diameters[dia] || '';
+          // Label cell
+          tableHtml += `<td style="background:#0f172a;color:#64748b;font-size:12px;font-weight:700;padding:4px 6px;cursor:default">${dia}</td>`;
+          // Input cell
+          tableHtml += `<td><input type="number" min="0" step="1" placeholder="0"
+            data-row="${row.id}" data-dia="${dia}"
             value="${val}"
             oninput="App.onDiaInput(this)"
-            onfocus="this.select()">
-        </div>`;
+            onkeydown="App.onDiaKey(event, this)"
+            onfocus="this.select()"></td>`;
+        }
+        tableHtml += '</tr>';
       }
+
+      tableHtml += '</tbody></table>';
 
       return `<div class="log-type-section" data-row-id="${row.id}">
         <div class="log-type-header">
           <input type="text" placeholder="Log Type (e.g. Meranti)" value="${row.logType}"
-            style="background:transparent;border:none;color:#f8fafc;font-size:14px;font-weight:700;width:200px;outline:none;"
-            onchange="App.onFieldChange(this, 'logType')">
+            style="background:transparent;border:none;color:#f8fafc;font-size:14px;font-weight:700;width:180px;outline:none;"
+            data-row="${row.id}" data-field="logType"
+            onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event, this)">
           <span class="meta">
-            L=<input type="number" placeholder="Length" value="${row.length}" step="0.1" min="0"
-              style="width:60px;background:transparent;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 6px;font-size:12px;text-align:center;"
-              onchange="App.onFieldChange(this, 'length')" data-row="${row.id}">
-            Q=<select style="background:transparent;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px;font-size:12px;"
-              onchange="App.onFieldChange(this, 'quality')" data-row="${row.id}">
+            L=<input type="number" placeholder="Length" value="${row.length}" step="1" min="0"
+              style="width:56px;background:transparent;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 6px;font-size:12px;text-align:center;outline:none;"
+              data-row="${row.id}" data-field="length"
+              onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event, this)">
+          </span>
+          <span class="meta">
+            Q=<select style="background:#0f172a;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px;font-size:12px;outline:none;"
+              data-row="${row.id}" data-field="quality"
+              onchange="App.onHeaderChange(this)">
+              <option value="Super" ${row.quality==='Super'?'selected':''}>Super</option>
               <option value="A" ${row.quality==='A'?'selected':''}>A</option>
               <option value="B" ${row.quality==='B'?'selected':''}>B</option>
               <option value="C" ${row.quality==='C'?'selected':''}>C</option>
               <option value="D" ${row.quality==='D'?'selected':''}>D</option>
             </select>
           </span>
-          <span class="meta">Qty: <strong style="color:#f8fafc">${totalQty}</strong></span>
-          <span class="meta">Vol: <strong style="color:#f8fafc">${totalVol.toFixed(4)}</strong> m3</span>
+          <span class="meta">
+            K=<input type="number" placeholder="0.7854" value="${row.cons}" step="0.0001" min="0"
+              style="width:58px;background:transparent;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 6px;font-size:12px;text-align:center;outline:none;"
+              data-row="${row.id}" data-field="cons"
+              onchange="App.onHeaderChange(this)" onkeydown="App.onHeaderKey(event, this)">
+          </span>
+          <span class="meta">Qty:<strong class="total-qty" style="color:#f8fafc;margin-left:2px">${totalQty}</strong></span>
+          <span class="meta">Vol:<strong class="total-vol" style="color:#f8fafc;margin-left:2px">${totalVol.toFixed(4)}</strong>m3</span>
           <div class="actions">
-            <button class="btn-remove" onclick="App.removeLogTypeRow('${row.id}')">Remove</button>
+            <button onclick="App.removeLogTypeRow('${row.id}')">Remove</button>
           </div>
         </div>
-        <div class="log-type-body">
-          <div class="diameter-grid">${cells}</div>
-        </div>
+        <div class="log-type-body">${tableHtml}</div>
         <div class="totals-bar">
-          <span class="total-item">Diameters with values: <strong>${Object.values(row.diameters).filter(v=>v>0).length}</strong></span>
+          <span class="total-item">Diameters: <strong>${count}</strong></span>
         </div>
       </div>`;
     }).join('');
   },
 
+  // ── Handle diameter input ───────────────────────────────────
   onDiaInput(el) {
     const rowId = el.dataset.row;
     const dia = parseInt(el.dataset.dia);
@@ -505,56 +495,79 @@ const App = {
       if (val > 0) row.diameters[dia] = val;
       else delete row.diameters[dia];
     }
-    // Update cell highlight without full re-render
-    el.parentElement.classList.toggle('has-value', val > 0);
-    // Update totals in header — lightweight
+    // Highlight
+    const td = el.parentElement;
+    td.style.background = val > 0 ? '#1e3a5f' : '';
+    td.previousElementSibling.style.background = val > 0 ? '#1e3a5f' : '#0f172a';
     App.updateTotals(rowId);
   },
 
+  // Enter in diameter input → move to next input
+  onDiaKey(event, el) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      // Find all dia inputs in this section
+      const section = el.closest('.log-type-section');
+      const inputs = Array.from(section.querySelectorAll('.dia-table input'));
+      const idx = inputs.indexOf(el);
+      if (idx >= 0 && idx < inputs.length - 1) {
+        inputs[idx + 1].focus();
+        inputs[idx + 1].select();
+      }
+    }
+  },
+
+  // ── Handle header field changes ─────────────────────────────
+  onHeaderChange(el) {
+    const rowId = el.dataset.row;
+    const field = el.dataset.field;
+    const row = App.logTypeRows.find(r => r.id === rowId);
+    if (!row) return;
+
+    if (field === 'logType') row.logType = el.value;
+    else if (field === 'length') { row.length = el.value; App.updateTotals(rowId); }
+    else if (field === 'quality') row.quality = el.value;
+    else if (field === 'cons') { row.cons = el.value; App.updateTotals(rowId); }
+  },
+
+  // Enter in header input → move to next header input or first dia input
+  onHeaderKey(event, el) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const section = el.closest('.log-type-section');
+      const headerInputs = Array.from(section.querySelectorAll('.log-type-header input, .log-type-header select'));
+      const idx = headerInputs.indexOf(el);
+      if (idx >= 0 && idx < headerInputs.length - 1) {
+        headerInputs[idx + 1].focus();
+      } else {
+        // Jump to first dia input
+        const firstDia = section.querySelector('.dia-table input');
+        if (firstDia) { firstDia.focus(); firstDia.select(); }
+      }
+    }
+  },
+
+  // ── Update totals (lightweight, no re-render) ────────────────
   updateTotals(rowId) {
     const row = App.logTypeRows.find(r => r.id === rowId);
     if (!row) return;
     const section = document.querySelector(`[data-row-id="${rowId}"]`);
     if (!section) return;
 
+    const cons = parseFloat(row.cons) || 0.7854;
+    const len = parseFloat(row.length) || 0;
     let totalQty = 0, totalVol = 0, count = 0;
     for (let d = App.diaMin; d <= App.diaMax; d++) {
       const q = row.diameters[d] || 0;
-      if (q > 0) {
-        totalQty += q;
-        const len = parseFloat(row.length) || 0;
-        totalVol += 0.7854 * Math.pow(d / 100, 2) * len * q;
-        count++;
-      }
+      if (q > 0) { totalQty += q; totalVol += calcVolume(cons, d, len) * q; count++; }
     }
-    // Update displayed totals
-    const metas = section.querySelectorAll('.log-type-header .meta');
-    if (metas[0]) metas[0].innerHTML = metas[0].innerHTML; // fields stay
-    // Find and update qty/vol in header
-    const strongs = section.querySelectorAll('.log-type-header strong');
-    if (strongs[0]) strongs[0].textContent = totalQty;
-    if (strongs[1]) strongs[1].textContent = totalVol.toFixed(4);
-    // Update diameters count in totals bar
+
+    const qtyEl = section.querySelector('.total-qty');
+    const volEl = section.querySelector('.total-vol');
+    if (qtyEl) qtyEl.textContent = totalQty;
+    if (volEl) volEl.textContent = totalVol.toFixed(4);
     const totalItem = section.querySelector('.total-item strong');
     if (totalItem) totalItem.textContent = count;
-  },
-
-  onFieldChange(el, field) {
-    const rowId = el.dataset.row;
-    const row = App.logTypeRows.find(r => r.id === rowId);
-    if (!row) return;
-    if (field === 'logType') {
-      // logType is the first input in header, no data-row — find by section
-      const section = el.closest('.log-type-section');
-      const rid = section?.dataset.rowId;
-      const r = App.logTypeRows.find(x => x.id === rid);
-      if (r) r.logType = el.value;
-    } else if (field === 'length') {
-      row.length = el.value;
-      App.updateTotals(rowId);
-    } else if (field === 'quality') {
-      row.quality = el.value;
-    }
   },
 
   // ── Save tally ──────────────────────────────────────────────
@@ -565,22 +578,16 @@ const App = {
     const locationId = document.getElementById('tally-location').value;
 
     if (!date || !supplierId || !graderId || !locationId) {
-      toast('Fill in date, supplier, grader, location', 'err');
-      return;
+      toast('Fill in date, supplier, grader, location', 'err'); return;
     }
 
-    // Check if any log type has data
     const hasData = App.logTypeRows.some(r => Object.values(r.diameters).some(v => v > 0));
-    if (!hasData) {
-      toast('No diameter data entered', 'err');
-      return;
-    }
+    if (!hasData) { toast('No diameter data entered', 'err'); return; }
 
     const statusEl = document.getElementById('tally-status');
     statusEl.textContent = 'Saving...';
 
     try {
-      // 1. Create or update tally header
       let headerId = App.currentTallyId;
       if (!headerId) {
         const hr = await fetch(App.base + '/api/tally_headers', {
@@ -593,7 +600,6 @@ const App = {
         headerId = hd.data.id;
         App.currentTallyId = headerId;
       } else {
-        // Update header
         await fetch(App.base + '/api/tally_headers/' + headerId, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -601,14 +607,12 @@ const App = {
         });
       }
 
-      // 2. For each log type row, POST individual items for each diameter with qty > 0
       let saved = 0;
       for (const row of App.logTypeRows) {
         if (!row.logType) continue;
         for (let d = App.diaMin; d <= App.diaMax; d++) {
           const qty = row.diameters[d] || 0;
           if (qty <= 0) continue;
-
           await fetch(App.base + '/api/tally_items', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -617,6 +621,7 @@ const App = {
               log_type: row.logType,
               length: parseFloat(row.length) || 0,
               quality: row.quality,
+              cons: parseFloat(row.cons) || 0.7854,
               diameter: d,
               quantity: qty,
             })
@@ -633,37 +638,32 @@ const App = {
     }
   },
 
-  // ── Load tally (from history) ────────────────────────────────
+  // ── Load tally from history ─────────────────────────────────
   async loadTally(headerId) {
     try {
-      // Load header
       const hr = await fetch(App.base + '/api/tally_headers/' + headerId);
       const hd = await hr.json();
       const header = hd.data;
-
       document.getElementById('tally-date').value = header.date || '';
       document.getElementById('tally-supplier').value = header.supplier_id || '';
       document.getElementById('tally-grader').value = header.grader_id || '';
       document.getElementById('tally-location').value = header.location_id || '';
 
-      // Load items
       const ir = await fetch(App.base + '/api/tally_items?limit=1000&tally_id=' + headerId);
       const id = await ir.json();
       const items = id.data || [];
 
-      // Group by log_type + length + quality
+      // Group by log_type + length + quality + cons
       const groups = {};
       for (const item of items) {
-        const key = `${item.log_type}|${item.length}|${item.quality}`;
-        if (!groups[key]) groups[key] = { logType: item.log_type, length: item.length, quality: item.quality, diameters: {} };
+        const key = `${item.log_type}|${item.length}|${item.quality}|${item.cons}`;
+        if (!groups[key]) groups[key] = { logType: item.log_type, length: item.length, quality: item.quality, cons: item.cons, diameters: {} };
         groups[key].diameters[item.diameter] = item.quantity;
       }
 
       App.logTypeRows = [];
       App.currentTallyId = headerId;
-      for (const g of Object.values(groups)) {
-        App.addLogTypeRow(g);
-      }
+      for (const g of Object.values(groups)) App.addLogTypeRow(g);
       if (App.logTypeRows.length === 0) App.addLogTypeRow();
 
       App.switchTab('tally');
@@ -680,60 +680,45 @@ const App = {
       const r = await fetch(App.base + '/api/tally_headers?limit=100');
       const d = await r.json();
       const headers = d.data || [];
-
       const tbody = document.getElementById('history-body');
-      tbody.innerHTML = headers.map(h => {
-        return `<tr>
-          <td>${h.id.slice(0,8)}</td>
-          <td>${h.date || '-'}</td>
-          <td>${h.supplier_id || '-'}</td>
-          <td>${h.location_id || '-'}</td>
-          <td>-</td>
-          <td>-</td>
-          <td class="actions-cell">
-            <button onclick="App.loadTally('${h.id}')">Load</button>
-            <button onclick="App.deleteTally('${h.id}')" style="border-color:#7f1d1d;color:#fca5a5;">Delete</button>
-          </td>
-        </tr>`;
-      }).join('');
-    } catch(e) {
-      toast('Failed to load history', 'err');
-    }
+      tbody.innerHTML = headers.map(h => `<tr>
+        <td>${h.id.slice(0,8)}</td>
+        <td>${h.date || '-'}</td>
+        <td>${h.supplier_id || '-'}</td>
+        <td>${h.location_id || '-'}</td>
+        <td>-</td><td>-</td>
+        <td class="actions-cell">
+          <button onclick="App.loadTally('${h.id}')">Load</button>
+          <button onclick="App.deleteTally('${h.id}')" style="border-color:#7f1d1d;color:#fca5a5;">Delete</button>
+        </td>
+      </tr>`).join('');
+    } catch(e) { toast('Failed to load history', 'err'); }
   },
 
   async deleteTally(id) {
     if (!confirm('Delete this tally and all its items?')) return;
     try {
-      // Delete items first
       const ir = await fetch(App.base + '/api/tally_items?limit=1000&tally_id=' + id);
       const id2 = await ir.json();
       const items = id2.data || [];
-      for (const item of items) {
-        await fetch(App.base + '/api/tally_items/' + item.id, { method: 'DELETE' });
-      }
-      // Delete header
+      for (const item of items) await fetch(App.base + '/api/tally_items/' + item.id, { method: 'DELETE' });
       await fetch(App.base + '/api/tally_headers/' + id, { method: 'DELETE' });
       toast('Tally deleted', 'ok');
       App.loadHistory();
-    } catch(e) {
-      toast('Delete failed: ' + e.message, 'err');
-    }
+    } catch(e) { toast('Delete failed: ' + e.message, 'err'); }
   },
 
-  // ── References management ───────────────────────────────────
+  // ── References ──────────────────────────────────────────────
   refsData: {},
 
   async renderRefs() {
     const cols = ['suppliers', 'graders', 'locations'];
     const labels = { suppliers: 'Suppliers', graders: 'Graders', locations: 'Locations' };
-
     let html = '';
     for (const col of cols) {
       const r = await fetch(App.base + '/api/' + col + '?limit=200');
       const d = await r.json();
       const items = d.data || [];
-      App.refsData[col] = items;
-
       html += `<h3 style="margin-top:16px">${labels[col]}</h3>`;
       html += `<div style="display:flex;gap:8px;margin:8px 0;">`;
       html += `<input type="text" id="ref-${col}-name" placeholder="Name" style="background:#0f172a;border:1px solid #475569;border-radius:4px;padding:6px 10px;color:#e2e8f0;font-size:13px;">`;
@@ -755,8 +740,7 @@ const App = {
     const code = document.getElementById(`ref-${col}-code`).value.trim();
     if (!name) { toast('Name required', 'err'); return; }
     await fetch(App.base + '/api/' + col, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, code })
     });
     toast('Added', 'ok');
@@ -774,9 +758,7 @@ const App = {
 
   // ── Clear / New ─────────────────────────────────────────────
   clearGrid() {
-    for (const row of App.logTypeRows) {
-      row.diameters = {};
-    }
+    for (const row of App.logTypeRows) row.diameters = {};
     App.renderLogTypes();
     toast('Grid cleared', 'info');
   },
@@ -790,18 +772,13 @@ const App = {
   },
 };
 
-// ── Auto-connect on load ──────────────────────────────────────
+// ── Auto-connect ──────────────────────────────────────────────
 (function() {
   const saved = localStorage.getItem('tally_api_url');
   const urlEl = document.getElementById('api-url');
-  if (saved) {
-    urlEl.value = saved;
-  } else {
-    urlEl.value = location.origin;
-  }
+  urlEl.value = saved || location.origin;
   App.connect();
 })();
 </script>
-
 </body>
 </html>
